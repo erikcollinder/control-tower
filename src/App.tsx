@@ -4,9 +4,11 @@ import { Canvas, SelectedNodeInfo, CanvasNodeInfo, CreateProcedureHandler } from
 import { Header } from './components/Header'
 import { ChatPanel } from './components/ChatPanel'
 import { ThreadsScreen } from './components/ThreadsScreen'
+import { ThreadView } from './components/ThreadView'
 import { PreferencesModal, GridType } from './components/PreferencesModal'
 import { MentionOption } from './components/MentionDropdown'
 import './App.css'
+import { Globe, Factory, MessageSquare } from 'lucide-react'
 
 // Default opacities: dots are more pronounced, lines are fainter
 const DEFAULT_OPACITY = { dots: 0.7, lines: 0.25 }
@@ -18,10 +20,25 @@ const MENTION_COMMANDS: MentionOption[] = [
   { id: 'cmd-current-selection', label: 'Current Selection', type: 'command', icon: 'mouse-pointer' },
 ]
 
-type ViewId = 'spaces' | 'threads' | 'dashboard' | 'tasks' | 'team'
+type Route =
+  | { id: 'spaces' }
+  | { id: 'threadsHome' }
+  | { id: 'threadDetail'; threadId: string }
+  | { id: 'dashboard' }
+  | { id: 'tasks' }
+  | { id: 'team' }
+
+type Thread = {
+  id: string
+  title: string
+  createdAt: number
+  messages: { id: string; role: 'user'; content: string }[]
+}
+
+type Rect = { top: number; left: number; width: number; height: number }
 
 function App() {
-  const [currentView, setCurrentView] = useState<ViewId>('spaces')
+  const [route, setRoute] = useState<Route>({ id: 'spaces' })
   const [isChatOpen, setIsChatOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false)
   const [gridType, setGridType] = useState<GridType>('dots')
@@ -31,6 +48,13 @@ function App() {
   const [selectedNodes, setSelectedNodes] = useState<SelectedNodeInfo[]>([])
   const [canvasNodes, setCanvasNodes] = useState<CanvasNodeInfo[]>([])
   const [createProcedureHandler, setCreateProcedureHandler] = useState<CreateProcedureHandler | null>(null)
+
+  const [threads, setThreads] = useState<Thread[]>([])
+  const [pendingMessageTransition, setPendingMessageTransition] = useState<{
+    threadId: string
+    messageId: string
+    from: Rect
+  } | null>(null)
 
   // Store the create procedure handler when Canvas is ready
   const handleCreateProcedureReady = useCallback((handler: CreateProcedureHandler) => {
@@ -55,28 +79,111 @@ function App() {
   }
 
   const handleNavigate = useCallback((id: string) => {
-    const nextView = id as ViewId
-    setCurrentView(nextView)
-
-    if (nextView === 'threads') {
+    if (id === 'threads') {
+      setRoute({ id: 'threadsHome' })
       setIsChatOpen(false)
+      return
     }
+    if (id === 'spaces') {
+      setRoute({ id: 'spaces' })
+      return
+    }
+    if (id === 'dashboard') return setRoute({ id: 'dashboard' })
+    if (id === 'tasks') return setRoute({ id: 'tasks' })
+    if (id === 'team') return setRoute({ id: 'team' })
   }, [])
+
+  const startNewThread = useCallback((text: string, fromRect?: Rect) => {
+    const now = Date.now()
+    const threadId = `thread-${now}`
+    const messageId = `msg-${now}`
+    const title = text.trim().slice(0, 42) || 'Untitled'
+
+    setThreads(prev => [
+      {
+        id: threadId,
+        title,
+        createdAt: now,
+        messages: [{ id: messageId, role: 'user', content: text }],
+      },
+      ...prev,
+    ])
+
+    if (fromRect) {
+      setPendingMessageTransition({ threadId, messageId, from: fromRect })
+    } else {
+      setPendingMessageTransition(null)
+    }
+
+    setRoute({ id: 'threadDetail', threadId })
+  }, [])
+
+  const currentThread =
+    route.id === 'threadDetail' ? threads.find(t => t.id === route.threadId) : null
+
+  const sidebarActiveId = route.id === 'spaces' ? 'spaces' : route.id.startsWith('thread') ? 'threads' : route.id
+
+  const headerConfig = (() => {
+    if (route.id === 'spaces') {
+      return {
+        sectionLabel: 'Spaces',
+        SectionIcon: Globe,
+        contextLabel: 'Facility Management',
+        ContextIcon: Factory,
+        showContextChevron: true,
+        showChatToggle: true,
+      }
+    }
+
+    if (route.id === 'threadsHome') {
+      return {
+        sectionLabel: 'Threads',
+        SectionIcon: MessageSquare,
+        contextLabel: 'New thread',
+        showContextChevron: false,
+        showChatToggle: false,
+      }
+    }
+
+    if (route.id === 'threadDetail') {
+      return {
+        sectionLabel: 'Threads',
+        SectionIcon: MessageSquare,
+        contextLabel: currentThread?.title ?? 'Thread',
+        showContextChevron: false,
+        showChatToggle: false,
+      }
+    }
+
+    return {
+      sectionLabel: route.id,
+      contextLabel: undefined,
+      showContextChevron: false,
+      showChatToggle: false,
+    }
+  })()
 
   return (
     <div className="app">
       <Sidebar
-        activeId={currentView}
+        activeId={sidebarActiveId}
         onNavigate={handleNavigate}
         onSettingsClick={() => setIsPreferencesOpen(true)}
       />
       <div className="main-area">
-        {currentView === 'spaces' && (
+        <Header
+          sectionLabel={headerConfig.sectionLabel}
+          SectionIcon={headerConfig.SectionIcon}
+          contextLabel={headerConfig.contextLabel}
+          ContextIcon={headerConfig.ContextIcon}
+          showContextChevron={headerConfig.showContextChevron}
+          showChatToggle={headerConfig.showChatToggle}
+          isChatOpen={isChatOpen}
+          onToggleChat={() => setIsChatOpen(prev => !prev)}
+        />
+
+        {route.id === 'spaces' && (
           <>
-            <Header
-              isChatOpen={isChatOpen}
-              onToggleChat={() => setIsChatOpen(prev => !prev)}
-            />
             <Canvas
               gridType={gridType}
               gridScale={gridScale}
@@ -89,15 +196,43 @@ function App() {
           </>
         )}
 
-        {currentView === 'threads' && <ThreadsScreen title="Threads" />}
+        {route.id === 'threadsHome' && <ThreadsScreen title="Threads" onStartThread={startNewThread} />}
 
-        {currentView !== 'spaces' && currentView !== 'threads' && (
+        {route.id === 'threadDetail' && currentThread && (
+          <ThreadView
+            threadId={currentThread.id}
+            threadTitle={currentThread.title}
+            initialMessage={currentThread.messages[0]!}
+            pendingTransition={
+              pendingMessageTransition &&
+              pendingMessageTransition.threadId === currentThread.id &&
+              pendingMessageTransition.messageId === currentThread.messages[0]?.id
+                ? { messageId: pendingMessageTransition.messageId, from: pendingMessageTransition.from }
+                : null
+            }
+            onTransitionDone={() => {
+              setPendingMessageTransition(prev => {
+                if (!prev) return prev
+                if (prev.threadId !== currentThread.id) return prev
+                return null
+              })
+            }}
+          />
+        )}
+
+        {route.id === 'threadDetail' && !currentThread && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
-            {currentView} coming soon
+            Thread not found
+          </div>
+        )}
+
+        {route.id !== 'spaces' && route.id !== 'threadsHome' && route.id !== 'threadDetail' && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
+            {route.id} coming soon
           </div>
         )}
       </div>
-      {currentView === 'spaces' && (
+      {route.id === 'spaces' && (
         <ChatPanel
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}

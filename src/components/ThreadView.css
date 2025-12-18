@@ -1,0 +1,121 @@
+.thread-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+
+.thread-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.thread-pinned {
+  max-width: 960px;
+}
+
+.thread-timeline {
+  max-width: 960px;
+}
+
+.thread-composer {
+  border-top: 1px solid var(--mono-200);
+  background: var(--mono-100);
+  padding: 12px 22px;
+}
+
+.thread-composer-inner {
+  max-width: 960px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.thread-textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--mono-200);
+  background: var(--mono-0);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mono-800);
+  outline: none;
+}
+
+.thread-textarea:focus {
+  border-color: var(--mono-300);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+}
+
+.thread-send {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--alpha-film-200);
+  background: linear-gradient(180deg, var(--alpha-film-100) 0%, var(--alpha-film-50) 100%);
+  color: var(--mono-800);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.thread-send:hover {
+  background: linear-gradient(180deg, var(--alpha-film-200) 0%, var(--alpha-film-100) 100%);
+}
+
+.thread-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Transition overlay */
+.thread-transition {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transition: top 520ms cubic-bezier(0.2, 0.8, 0.2, 1), left 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 520ms cubic-bezier(0.2, 0.8, 0.2, 1), height 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 520ms ease;
+  opacity: 1;
+}
+
+.thread-transition-inner {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--mono-200);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.thread-transition .message-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mono-500);
+  margin-bottom: 8px;
+}
+
+.thread-transition .message-content {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--mono-900);
+}
+
+.thread-debug {
+  display: none;
+}
