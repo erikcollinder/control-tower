@@ -1,0 +1,119 @@
+.threads-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 28px 40px;
+  min-width: 0;
+}
+
+.threads-shell {
+  width: 100%;
+  max-width: 840px;
+}
+
+.threads-header {
+  margin-bottom: 14px;
+}
+
+.threads-title {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 650;
+  color: var(--mono-900);
+  letter-spacing: -0.01em;
+}
+
+.threads-subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--mono-500);
+}
+
+.threads-composer {
+  background: var(--mono-0);
+  border: 1px solid var(--alpha-film-200);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow:
+    0 1px 0 var(--alpha-film-50),
+    0 10px 26px rgba(0, 0, 0, 0.06);
+}
+
+.threads-label {
+  display: block;
+  font-size: 12px;
+  color: var(--mono-500);
+  margin-bottom: 10px;
+}
+
+.threads-textarea {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--alpha-film-200);
+  background: var(--mono-50);
+  border-radius: 12px;
+  padding: 12px 12px;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--mono-800);
+  outline: none;
+}
+
+.threads-textarea::placeholder {
+  color: var(--mono-400);
+}
+
+.threads-textarea:focus {
+  background: var(--mono-0);
+  border-color: rgba(79, 70, 229, 0.35);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.threads-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  gap: 12px;
+}
+
+.threads-hint {
+  font-size: 12px;
+  color: var(--mono-400);
+  user-select: none;
+}
+
+.threads-send {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--alpha-film-200);
+  background: linear-gradient(
+    180deg,
+    var(--alpha-film-100) 0%,
+    var(--alpha-film-50) 100%
+  );
+  color: var(--mono-800);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.threads-send:hover {
+  background: linear-gradient(
+    180deg,
+    var(--alpha-film-200) 0%,
+    var(--alpha-film-100) 100%
+  );
+}
+
+.threads-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

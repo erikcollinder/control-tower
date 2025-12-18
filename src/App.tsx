@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar'
 import { Canvas, SelectedNodeInfo, CanvasNodeInfo, CreateProcedureHandler } from './components/Canvas'
 import { Header } from './components/Header'
 import { ChatPanel } from './components/ChatPanel'
+import { ThreadsScreen } from './components/ThreadsScreen'
 import { PreferencesModal, GridType } from './components/PreferencesModal'
 import { MentionOption } from './components/MentionDropdown'
 import './App.css'
@@ -17,7 +18,10 @@ const MENTION_COMMANDS: MentionOption[] = [
   { id: 'cmd-current-selection', label: 'Current Selection', type: 'command', icon: 'mouse-pointer' },
 ]
 
+type ViewId = 'spaces' | 'threads' | 'dashboard' | 'tasks' | 'team'
+
 function App() {
+  const [currentView, setCurrentView] = useState<ViewId>('spaces')
   const [isChatOpen, setIsChatOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false)
   const [gridType, setGridType] = useState<GridType>('dots')
@@ -50,39 +54,66 @@ function App() {
     setGridOpacity(DEFAULT_OPACITY[type])
   }
 
+  const handleNavigate = useCallback((id: string) => {
+    const nextView = id as ViewId
+    setCurrentView(nextView)
+
+    if (nextView === 'threads') {
+      setIsChatOpen(false)
+    }
+  }, [])
+
   return (
     <div className="app">
-      <Sidebar onSettingsClick={() => setIsPreferencesOpen(true)} />
-      <div className="main-area">
-        <Header 
-          isChatOpen={isChatOpen} 
-          onToggleChat={() => setIsChatOpen(prev => !prev)} 
-        />
-        <Canvas 
-          gridType={gridType} 
-          gridScale={gridScale} 
-          gridOpacity={gridOpacity} 
-          showParticleTrails={showParticleTrails}
-          onSelectionChange={setSelectedNodes} 
-          onNodesListChange={setCanvasNodes}
-          onCreateProcedureReady={handleCreateProcedureReady}
-        />
-      </div>
-      <ChatPanel 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)}
-        currentSpace={{ id: 'facility-management', label: 'Facility Management' }}
-        selectedNodes={selectedNodes}
-        onClearSelection={(nodeId) => {
-          if (nodeId) {
-            setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
-          } else {
-            setSelectedNodes([])
-          }
-        }}
-        mentionOptions={mentionOptions}
-        onCreateProcedure={createProcedureHandler ?? undefined}
+      <Sidebar
+        activeId={currentView}
+        onNavigate={handleNavigate}
+        onSettingsClick={() => setIsPreferencesOpen(true)}
       />
+      <div className="main-area">
+        {currentView === 'spaces' && (
+          <>
+            <Header
+              isChatOpen={isChatOpen}
+              onToggleChat={() => setIsChatOpen(prev => !prev)}
+            />
+            <Canvas
+              gridType={gridType}
+              gridScale={gridScale}
+              gridOpacity={gridOpacity}
+              showParticleTrails={showParticleTrails}
+              onSelectionChange={setSelectedNodes}
+              onNodesListChange={setCanvasNodes}
+              onCreateProcedureReady={handleCreateProcedureReady}
+            />
+          </>
+        )}
+
+        {currentView === 'threads' && <ThreadsScreen title="Threads" />}
+
+        {currentView !== 'spaces' && currentView !== 'threads' && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
+            {currentView} coming soon
+          </div>
+        )}
+      </div>
+      {currentView === 'spaces' && (
+        <ChatPanel
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          currentSpace={{ id: 'facility-management', label: 'Facility Management' }}
+          selectedNodes={selectedNodes}
+          onClearSelection={(nodeId) => {
+            if (nodeId) {
+              setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
+            } else {
+              setSelectedNodes([])
+            }
+          }}
+          mentionOptions={mentionOptions}
+          onCreateProcedure={createProcedureHandler ?? undefined}
+        />
+      )}
       <PreferencesModal
         isOpen={isPreferencesOpen}
         onClose={() => setIsPreferencesOpen(false)}

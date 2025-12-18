@@ -1,10 +1,10 @@
-import { CheckSquare, LayoutGrid, Box, Settings, Users, Folder, Menu } from 'lucide-react'
+import { CheckSquare, LayoutGrid, Box, Settings, Users, Folder, Menu, MessageSquare } from 'lucide-react'
 import './Sidebar.css'
 
 interface NavItem {
+  id: string
   icon: typeof CheckSquare
   label: string
-  active: boolean
   onClick?: () => void
 }
 
@@ -12,15 +12,18 @@ const folders = Array(11).fill({ icon: Folder, label: 'Folder' })
 
 interface SidebarProps {
   onSettingsClick?: () => void
+  activeId?: string
+  onNavigate?: (id: string) => void
 }
 
-export function Sidebar({ onSettingsClick }: SidebarProps) {
+export function Sidebar({ onSettingsClick, activeId = 'spaces', onNavigate }: SidebarProps) {
   const navItems: NavItem[] = [
-    { icon: CheckSquare, label: 'Tasks', active: false },
-    { icon: LayoutGrid, label: 'Dashboard', active: false },
-    { icon: Box, label: 'Spaces', active: true },
-    { icon: Settings, label: 'Settings', active: false, onClick: onSettingsClick },
-    { icon: Users, label: 'Team', active: false },
+    { id: 'tasks', icon: CheckSquare, label: 'Tasks', onClick: () => onNavigate?.('tasks') },
+    { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', onClick: () => onNavigate?.('dashboard') },
+    { id: 'threads', icon: MessageSquare, label: 'Threads', onClick: () => onNavigate?.('threads') },
+    { id: 'spaces', icon: Box, label: 'Spaces', onClick: () => onNavigate?.('spaces') },
+    { id: 'settings', icon: Settings, label: 'Settings', onClick: onSettingsClick },
+    { id: 'team', icon: Users, label: 'Team', onClick: () => onNavigate?.('team') },
   ]
 
   return (
@@ -33,7 +36,7 @@ export function Sidebar({ onSettingsClick }: SidebarProps) {
         {navItems.map((item, index) => (
           <button 
             key={index} 
-            className={`nav-item ${item.active ? 'active' : ''}`}
+            className={`nav-item ${item.id === activeId ? 'active' : ''}`}
             title={item.label}
             onClick={item.onClick}
           >
