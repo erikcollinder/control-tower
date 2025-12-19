@@ -48,6 +48,7 @@ export function InboxNode({ id, data }: InboxNodeProps) {
       >
         <Settings size={14} />
       </button>
+      <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
       
       {showPopover && (

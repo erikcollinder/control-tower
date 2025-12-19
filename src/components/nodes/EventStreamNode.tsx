@@ -21,8 +21,6 @@ interface StreamParticle {
   y: number
   speed: number
   size: number
-  trail: { x: number; y: number }[]
-  maxTrailLength: number
 }
 
 const PARTICLE_COLOR = '#4f46e5' // Indigo - matches main particle system
@@ -103,17 +101,7 @@ export function EventStreamNode({ id, data }: EventStreamNodeProps) {
         y: centerY + (Math.random() * 2 - 1) * verticalSpread,
         speed: 0.5 + Math.random() * 1, // 0.5-1.5 speed range
         size: 2 + Math.random() * 1, // 2-3px radius
-        trail: [],
-        maxTrailLength: 15 + Math.floor(Math.random() * 5), // 15-20 trail positions
       }
-    }
-
-    // Convert hex to rgba
-    const hexToRgba = (hex: string, alpha: number): string => {
-      const r = parseInt(hex.slice(1, 3), 16)
-      const g = parseInt(hex.slice(3, 5), 16)
-      const b = parseInt(hex.slice(5, 7), 16)
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`
     }
 
     // Animation loop
@@ -128,12 +116,6 @@ export function EventStreamNode({ id, data }: EventStreamNodeProps) {
 
       // Update particles
       particlesRef.current.forEach(p => {
-        // Store current position in trail
-        p.trail.unshift({ x: p.x, y: p.y })
-        if (p.trail.length > p.maxTrailLength) {
-          p.trail.pop()
-        }
-
         // Move particle to the right
         p.x += p.speed * 2 // pixels per frame
       })
@@ -144,39 +126,11 @@ export function EventStreamNode({ id, data }: EventStreamNodeProps) {
       // Clear canvas
       ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
-      // Draw trails
+      // Draw particles (no trails)
       particlesRef.current.forEach(p => {
-        if (p.trail.length < 2) return
-
-        ctx.beginPath()
-        ctx.moveTo(p.trail[0].x, p.trail[0].y)
-
-        for (let i = 1; i < p.trail.length; i++) {
-          ctx.lineTo(p.trail[i].x, p.trail[i].y)
-        }
-
-        // Create gradient for trail
-        const gradient = ctx.createLinearGradient(
-          p.trail[0].x, p.trail[0].y,
-          p.trail[p.trail.length - 1].x, p.trail[p.trail.length - 1].y
-        )
-        gradient.addColorStop(0, PARTICLE_COLOR)
-        gradient.addColorStop(1, hexToRgba(PARTICLE_COLOR, 0))
-
-        ctx.strokeStyle = gradient
-        ctx.lineWidth = p.size * 0.8
-        ctx.lineCap = 'round'
-        ctx.stroke()
-      })
-
-      // Draw particle heads
-      particlesRef.current.forEach(p => {
-        if (p.trail.length === 0) return
-        const pos = p.trail[0]
-
         ctx.fillStyle = PARTICLE_COLOR
         ctx.beginPath()
-        ctx.arc(pos.x, pos.y, p.size, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
         ctx.fill()
       })
 
