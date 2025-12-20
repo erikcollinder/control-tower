@@ -115,3 +115,8 @@
   color: #0d9488;
 }
 
+.context-menu-icon.connector-item {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  color: #7c3aed;
+}
+
