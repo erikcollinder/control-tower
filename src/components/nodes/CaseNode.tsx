@@ -26,6 +26,10 @@ export interface CaseData {
   createdAt?: string
   dueDate?: string
   tags?: string[]
+  attachedFiles?: string[]
+  notepad?: string
+  currentStage?: string
+  stageEnteredAt?: string
   onOpenDetailPanel?: (nodeId: string) => void
 }
 

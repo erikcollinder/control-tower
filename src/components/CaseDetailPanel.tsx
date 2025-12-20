@@ -1,4 +1,4 @@
-import { X, Briefcase, User, Calendar, Clock, Tag, AlertCircle, Circle, CheckCircle2, Pause, MessageSquare, Bell, UserPlus, Edit3, Plus } from 'lucide-react'
+import { X, Briefcase, User, Calendar, Clock, Tag, AlertCircle, Circle, CheckCircle2, Pause, MessageSquare, Bell, UserPlus, Edit3, Plus, ListTodo, File, FileText } from 'lucide-react'
 import { CaseStatus, CasePriority } from './nodes/CaseNode'
 import './CaseDetailPanel.css'
 
@@ -13,6 +13,9 @@ interface CaseDetailPanelProps {
   createdAt: string
   dueDate?: string
   tags: string[]
+  currentStage?: string
+  attachedFiles?: string[]
+  notepad?: string
 }
 
 interface ActivityItem {
@@ -123,7 +126,10 @@ export function CaseDetailPanel({
   assignee,
   createdAt,
   dueDate,
-  tags
+  tags,
+  currentStage,
+  attachedFiles,
+  notepad
 }: CaseDetailPanelProps) {
   return (
     <div className={`case-detail-panel ${isOpen ? 'open' : ''}`}>
@@ -165,6 +171,13 @@ export function CaseDetailPanel({
             <span className="meta-label">Assignee</span>
             <span className="meta-value">{assignee}</span>
           </div>
+          {currentStage && (
+            <div className="case-panel-meta-item">
+              <ListTodo size={14} />
+              <span className="meta-label">Stage</span>
+              <span className="meta-value">{currentStage}</span>
+            </div>
+          )}
           <div className="case-panel-meta-item">
             <Calendar size={14} />
             <span className="meta-label">Created</span>
@@ -190,6 +203,38 @@ export function CaseDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Attached Files Section */}
+      {attachedFiles && attachedFiles.length > 0 && (
+        <div className="case-panel-files">
+          <div className="case-panel-section-header">
+            <File size={14} />
+            <span>Attached Files</span>
+            <span className="section-count">{attachedFiles.length}</span>
+          </div>
+          <div className="case-panel-files-list">
+            {attachedFiles.map((file, index) => (
+              <div key={index} className="case-panel-file-item">
+                <FileText size={14} />
+                <span className="file-name">{file}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Notepad Section */}
+      {notepad && (
+        <div className="case-panel-notepad">
+          <div className="case-panel-section-header">
+            <Edit3 size={14} />
+            <span>Notepad</span>
+          </div>
+          <div className="case-panel-notepad-content">
+            {notepad}
+          </div>
+        </div>
+      )}
 
       {/* Activity Thread Section */}
       <div className="case-panel-activity-header">

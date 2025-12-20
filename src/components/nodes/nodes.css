@@ -56,6 +56,32 @@
   color: var(--indigo-500);
 }
 
+/* Node disclosure button (chevron icon) */
+.node-disclosure-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--alpha-film-500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.node-disclosure-btn:hover {
+  background: var(--alpha-film-100);
+  border-color: var(--alpha-film-200);
+  color: var(--alpha-film-700);
+}
+
+.node-disclosure-btn:active {
+  background: var(--alpha-film-150);
+}
+
 /* Node settings button (gear icon) */
 .node-settings-btn {
   width: 32px;
@@ -299,10 +325,19 @@
   padding: 8px 16px 8px 12px;
   gap: 12px;
   z-index: 1;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.12s ease;
 }
 
 .procedure-step:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
+  transform: translateX(2px);
+}
+
+.procedure-step:active {
+  background: #e2e8f0;
+  transform: translateX(0px);
 }
 
 .step-indicator {

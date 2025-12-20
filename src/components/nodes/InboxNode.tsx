@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
-import { Inbox, Settings } from 'lucide-react'
+import { Inbox, Settings, ChevronRight } from 'lucide-react'
 import { InboxPopover } from '../NodePopover'
 import './nodes.css'
 
@@ -13,6 +13,7 @@ interface InboxNodeProps {
     holdDurationMin: number
     holdDurationMax: number
     onGenerateCase?: () => void
+    onStageClick?: (nodeId: string) => void
   }
 }
 
@@ -39,6 +40,16 @@ export function InboxNode({ id, data }: InboxNodeProps) {
         <span className="node-title">{data.label}</span>
         <span className="node-subtitle">{data.casesPerMinute}/min</span>
       </div>
+      <button
+        className="node-disclosure-btn"
+        onClick={(e) => {
+          e.stopPropagation()
+          data.onStageClick?.(id)
+        }}
+        title="View cases in Inbox"
+      >
+        <ChevronRight size={14} />
+      </button>
       <button
         className="node-settings-btn"
         onClick={(e) => {

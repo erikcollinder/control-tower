@@ -33,8 +33,10 @@ import { CanvasOutline } from './CanvasOutline'
 import { ParticleCanvas } from './ParticleCanvas'
 import { ProcedureDetailPanel } from './ProcedureDetailPanel'
 import { CaseDetailPanel } from './CaseDetailPanel'
+import { StageDetailPanel } from './StageDetailPanel'
 import { ParticleSystem } from '../services/ParticleSystem'
 import { CaseStatus, CasePriority } from './nodes/CaseNode'
+import { mockCases, getCasesByStage, getAverageTimeInStage } from '../data/mockCases'
 import type { GridType } from './PreferencesModal'
 import './Canvas.css'
 
@@ -148,6 +150,9 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
   // Case detail panel state
   const [caseDetailPanelNodeId, setCaseDetailPanelNodeId] = useState<string | null>(null)
   
+  // Stage detail panel state
+  const [stageDetailPanel, setStageDetailPanel] = useState<{ nodeId: string, stageIndex?: number } | null>(null)
+  
   // Canvas outline collapsed state
   const [outlineCollapsed, setOutlineCollapsed] = useState(true)
   
@@ -228,6 +233,36 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
   const handleCloseCaseDetailPanel = useCallback(() => {
     setCaseDetailPanelNodeId(null)
   }, [])
+  
+  // Handler to open stage detail panel (for Procedure nodes)
+  const handleOpenStageDetailPanel = useCallback((nodeId: string, stageIndex: number) => {
+    setStageDetailPanel({ nodeId, stageIndex })
+    setDetailPanelNodeId(null) // Close procedure panel if open
+    setCaseDetailPanelNodeId(null) // Close case panel if open
+  }, [])
+  
+  // Handler to open stage detail panel (for Inbox/Outbox nodes)
+  const handleOpenInboxOutboxStagePanel = useCallback((nodeId: string) => {
+    setStageDetailPanel({ nodeId })
+    setDetailPanelNodeId(null) // Close procedure panel if open
+    setCaseDetailPanelNodeId(null) // Close case panel if open
+  }, [])
+
+  // Close stage detail panel
+  const handleCloseStageDetailPanel = useCallback(() => {
+    setStageDetailPanel(null)
+  }, [])
+  
+  // Handler to open case detail from stage panel
+  const handleOpenCaseDetailFromStage = useCallback((caseId: string) => {
+    // Find the case in mock data and open the case detail panel
+    const mockCase = mockCases.find(c => c.id === caseId)
+    if (mockCase) {
+      // We'll use the case ID as the "node ID" for now
+      setCaseDetailPanelNodeId(caseId)
+      setStageDetailPanel(null) // Close stage panel
+    }
+  }, [])
 
   // Get data for the detail panel
   const detailPanelNode = detailPanelNodeId ? nodes.find(n => n.id === detailPanelNodeId) : null
@@ -257,17 +292,23 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
   }, [detailPanelNodeId, setNodes])
   
   // Get data for the case detail panel
-  const caseDetailPanelNode = caseDetailPanelNodeId ? nodes.find(n => n.id === caseDetailPanelNodeId) : null
-  const caseDetailLabel = (caseDetailPanelNode?.data?.label as string) ?? 'Case'
-  const caseDetailId = (caseDetailPanelNode?.data?.caseId as string) ?? `#${caseDetailPanelNodeId?.slice(-6).toUpperCase() ?? ''}`
-  const caseDetailStatus = (caseDetailPanelNode?.data?.status as CaseStatus) ?? 'open'
-  const caseDetailPriority = (caseDetailPanelNode?.data?.priority as CasePriority) ?? 'medium'
-  const caseDetailAssignee = (caseDetailPanelNode?.data?.assignee as string) ?? 'Unassigned'
-  const caseDetailCreatedAt = (caseDetailPanelNode?.data?.createdAt as string) ?? 'Just now'
-  const caseDetailDueDate = caseDetailPanelNode?.data?.dueDate as string | undefined
-  const caseDetailTags = (caseDetailPanelNode?.data?.tags as string[]) ?? []
+  // First check if it's a mock case, otherwise check nodes
+  const mockCase = caseDetailPanelNodeId ? mockCases.find(c => c.id === caseDetailPanelNodeId) : null
+  const caseDetailPanelNode = !mockCase && caseDetailPanelNodeId ? nodes.find(n => n.id === caseDetailPanelNodeId) : null
+  
+  const caseDetailLabel = mockCase?.label ?? (caseDetailPanelNode?.data?.label as string) ?? 'Case'
+  const caseDetailId = mockCase?.caseId ?? (caseDetailPanelNode?.data?.caseId as string) ?? `#${caseDetailPanelNodeId?.slice(-6).toUpperCase() ?? ''}`
+  const caseDetailStatus = (mockCase?.status ?? caseDetailPanelNode?.data?.status) as CaseStatus ?? 'open'
+  const caseDetailPriority = (mockCase?.priority ?? caseDetailPanelNode?.data?.priority) as CasePriority ?? 'medium'
+  const caseDetailAssignee = mockCase?.assignee ?? (caseDetailPanelNode?.data?.assignee as string) ?? 'Unassigned'
+  const caseDetailCreatedAt = mockCase?.createdAt ?? (caseDetailPanelNode?.data?.createdAt as string) ?? 'Just now'
+  const caseDetailDueDate = mockCase?.dueDate ?? (caseDetailPanelNode?.data?.dueDate as string | undefined)
+  const caseDetailTags = mockCase?.tags ?? (caseDetailPanelNode?.data?.tags as string[]) ?? []
+  const caseDetailCurrentStage = mockCase?.currentStage
+  const caseDetailAttachedFiles = mockCase?.attachedFiles
+  const caseDetailNotepad = mockCase?.notepad
 
-  // Update procedure nodes with the callback
+  // Update procedure nodes with the callbacks
   useEffect(() => {
     setNodes(nds => nds.map(node => {
       if (node.type === 'procedure') {
@@ -276,12 +317,13 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
           data: {
             ...node.data,
             onOpenDetailPanel: handleOpenDetailPanel,
+            onStageClick: handleOpenStageDetailPanel,
           }
         }
       }
       return node
     }))
-  }, [handleOpenDetailPanel, setNodes])
+  }, [handleOpenDetailPanel, handleOpenStageDetailPanel, setNodes])
 
   // Update case nodes with the callback
   useEffect(() => {
@@ -338,6 +380,22 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
     }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [particleSystem, setNodes, eventStreamNodeIds])
+  
+  // Update inbox and outbox nodes with the stage click callback
+  useEffect(() => {
+    setNodes(nds => nds.map(node => {
+      if (node.id === 'inbox' || node.id === 'outbox') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onStageClick: handleOpenInboxOutboxStagePanel,
+          }
+        }
+      }
+      return node
+    }))
+  }, [handleOpenInboxOutboxStagePanel, setNodes])
 
   // Get selected node IDs from nodes state
   const selectedNodeIds = useMemo(() => 
@@ -682,6 +740,49 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
     }
   }, [onCreateProcedureReady, handleCreateProcedure])
 
+  // Compute data for stage detail panel
+  const stageDetailData = useMemo(() => {
+    if (!stageDetailPanel) return null
+    
+    const { nodeId, stageIndex } = stageDetailPanel
+    const node = nodes.find(n => n.id === nodeId)
+    
+    let stageName = ''
+    let stageType: 'inbox' | 'outbox' | 'procedure' | undefined
+    let stageSubtype: 'ai' | 'manual' | 'user' | 'approval' | 'default' | undefined
+    let stageId = ''
+    
+    if (nodeId === 'inbox') {
+      stageName = 'Inbox'
+      stageType = 'inbox'
+      stageId = 'inbox'
+    } else if (nodeId === 'outbox') {
+      stageName = 'Outbox'
+      stageType = 'outbox'
+      stageId = 'outbox'
+    } else if (node?.type === 'procedure' && stageIndex !== undefined) {
+      const stages = node.data?.stages ?? DEFAULT_PROCEDURE_STAGES
+      const stage = stages[stageIndex]
+      if (stage) {
+        stageName = stage.label
+        stageType = 'procedure'
+        stageSubtype = stage.type
+        stageId = `${nodeId}:${stageIndex}`
+      }
+    }
+    
+    const cases = getCasesByStage(stageId)
+    const averageTime = getAverageTimeInStage(stageId)
+    
+    return {
+      stageName,
+      stageType,
+      stageSubtype,
+      cases,
+      averageTime,
+    }
+  }, [stageDetailPanel, nodes])
+
   return (
     <div className={`canvas-container ${outlineCollapsed ? 'outline-collapsed' : 'outline-expanded'}`} ref={reactFlowWrapper}>
       <ReactFlow
@@ -794,6 +895,8 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
         procedureLabel={detailPanelLabel}
         stages={detailPanelStages}
         onStageDetailsChange={handleStageDetailsChange}
+        nodeId={detailPanelNodeId || undefined}
+        onStageClick={handleOpenStageDetailPanel}
       />
 
       <CaseDetailPanel
@@ -807,7 +910,23 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
         createdAt={caseDetailCreatedAt}
         dueDate={caseDetailDueDate}
         tags={caseDetailTags}
+        currentStage={caseDetailCurrentStage}
+        attachedFiles={caseDetailAttachedFiles}
+        notepad={caseDetailNotepad}
       />
+
+      {stageDetailData && (
+        <StageDetailPanel
+          isOpen={stageDetailPanel !== null}
+          onClose={handleCloseStageDetailPanel}
+          stageName={stageDetailData.stageName}
+          stageType={stageDetailData.stageType}
+          stageSubtype={stageDetailData.stageSubtype}
+          cases={stageDetailData.cases}
+          averageTimeInStage={stageDetailData.averageTime}
+          onCaseClick={handleOpenCaseDetailFromStage}
+        />
+      )}
     </div>
   )
 }

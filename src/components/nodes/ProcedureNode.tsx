@@ -36,6 +36,7 @@ interface ProcedureNodeProps {
     label: string
     stages?: ProcedureStage[]
     onOpenDetailPanel?: (nodeId: string) => void
+    onStageClick?: (nodeId: string, stageIndex: number) => void
   }
 }
 
@@ -67,6 +68,12 @@ export function ProcedureNode({ id, data }: ProcedureNodeProps) {
     data.onOpenDetailPanel?.(id)
   }
   
+  const handleStageClick = (e: React.MouseEvent, stageIndex: number) => {
+    e.stopPropagation()
+    e.preventDefault()
+    data.onStageClick?.(id, stageIndex)
+  }
+  
   return (
     <div className="procedure-card">
       <div className="procedure-header">
@@ -89,7 +96,18 @@ export function ProcedureNode({ id, data }: ProcedureNodeProps) {
       <div className="procedure-steps">
         <div className="timeline-line" />
         {stages.map((step, index) => (
-          <div key={index} className="procedure-step" data-stage-index={index}>
+          <div 
+            key={index} 
+            className="procedure-step" 
+            data-stage-index={index}
+            onClick={(e) => handleStageClick(e, index)}
+            onMouseDown={(e) => {
+              // Prevent React Flow from handling this as a drag start
+              if (e.button === 0) { // Left click only
+                e.stopPropagation()
+              }
+            }}
+          >
             <div className="step-indicator">
               <div className="step-dot" />
             </div>

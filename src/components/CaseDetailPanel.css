@@ -245,6 +245,100 @@
   font-weight: 500;
 }
 
+/* Section Header */
+.case-panel-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mono-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.case-panel-section-header svg {
+  color: var(--mono-400);
+}
+
+.section-count {
+  background: var(--alpha-film-100);
+  color: var(--mono-500);
+  padding: 2px 6px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* Attached Files Section */
+.case-panel-files {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--alpha-film-100);
+  background: #fafaf9;
+  flex-shrink: 0;
+}
+
+.case-panel-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.case-panel-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--mono-0);
+  border: 1px solid var(--alpha-film-100);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--mono-600);
+  transition: all 0.12s ease;
+  cursor: pointer;
+}
+
+.case-panel-file-item:hover {
+  background: var(--mono-50);
+  border-color: var(--mono-200);
+}
+
+.case-panel-file-item svg {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mono-700);
+  font-weight: 500;
+}
+
+/* Notepad Section */
+.case-panel-notepad {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--alpha-film-100);
+  background: #fafaf9;
+  flex-shrink: 0;
+}
+
+.case-panel-notepad-content {
+  padding: 10px 12px;
+  background: var(--mono-0);
+  border: 1px solid var(--alpha-film-100);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mono-600);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* Activity Header */
 .case-panel-activity-header {
   display: flex;

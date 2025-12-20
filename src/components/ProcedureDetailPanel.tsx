@@ -8,6 +8,8 @@ interface ProcedureDetailPanelProps {
   procedureLabel: string
   stages: ProcedureStage[]
   onStageDetailsChange?: (stageIndex: number, details: string) => void
+  nodeId?: string
+  onStageClick?: (nodeId: string, stageIndex: number) => void
 }
 
 const getStepIcon = (type: string) => {
@@ -45,7 +47,9 @@ export function ProcedureDetailPanel({
   onClose, 
   procedureLabel, 
   stages,
-  onStageDetailsChange 
+  onStageDetailsChange,
+  nodeId,
+  onStageClick
 }: ProcedureDetailPanelProps) {
   return (
     <div className={`procedure-detail-panel ${isOpen ? 'open' : ''}`}>
@@ -81,7 +85,16 @@ export function ProcedureDetailPanel({
                 <span className="panel-stage-number">Stage {index + 1}</span>
                 <span className="panel-stage-label">{stage.label}</span>
               </div>
-              <button className="panel-stage-expand">
+              <button 
+                className="panel-stage-expand"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (nodeId && onStageClick) {
+                    onStageClick(nodeId, index)
+                  }
+                }}
+                title="View stage details"
+              >
                 <ChevronRight size={14} />
               </button>
             </div>
