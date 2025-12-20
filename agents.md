@@ -60,6 +60,52 @@ These do not participate in the automated Case flow.
 
 ---
 
+## App Shell (Global Header + Sidebar Navigation)
+
+The app shell is consistent across views:
+
+- **Global header/breadcrumb** (`src/components/Header.tsx`) is always visible and view-aware:
+  - **Spaces**: `Spaces / Facility Management` (space selector shows chevron)
+  - **Threads**: `Threads / <thread title>` (no chevron)
+  - Chat toggle is shown in Spaces and hidden in Threads to avoid competing chat surfaces.
+- **Sidebar nav** (`src/components/Sidebar.tsx`) includes a **Threads** entry (chat icon) alongside Spaces and other placeholders.
+
+---
+
+## Threads (Conversation UX)
+
+Threads are a first-class surface separate from the right-side `ChatPanel`.
+
+### Threads Home
+
+- **Component**: `src/components/ThreadsScreen.tsx`
+- Centered composer for starting a new thread.
+- On send: creates an in-memory thread and navigates to thread detail.
+
+### Thread Detail
+
+- **Component**: `src/components/ThreadView.tsx`
+- The first user message becomes a **pinned sticky message** at the top of the thread while the agent streams.
+- Under the pinned message is a **timeline** of an agent turn:
+  - Sequential **Moves**
+  - Each move is either **Thinking** (monologue) or a **Tool call**
+  - Ends with a **final message** distinct from the monologue
+- A **bottom composer** is present for follow-ups (hooked up later).
+
+### Visual/Interaction Details (UI-first)
+
+- First message animates from the Threads home composer into the pinned slot (bottom → top transition).
+- Streaming text fades in as segments arrive (monologue + final).
+- Tool calls show a shimmer/loading state while args/results are forming/arriving.
+
+### Mock agent stream
+
+- For fast iteration, the thread detail uses a mock stream generator:
+  - `src/services/threads/mockThreadAgent.ts`
+  - Emits `thinking_*`, `tool_*`, `text_delta`, `turn_end` events compatible with `src/services/agent/types.ts`.
+
+---
+
 ## Manual Node Placement & Edge Creation
 
 The canvas uses **fully manual placement** - nodes appear where you create them (via right-click context menu) and stay where you drag them.
@@ -306,6 +352,13 @@ src/
 │   ├── Header.css
 │   ├── ChatPanel.tsx       # AI chat sidebar
 │   ├── ChatPanel.css
+│   ├── ThreadsScreen.tsx   # Threads home (centered composer)
+│   ├── ThreadsScreen.css
+│   ├── ThreadView.tsx      # Thread detail (pinned message + timeline)
+│   ├── ThreadView.css
+│   ├── thread/
+│   │   ├── MoveBlocks.tsx  # Reusable move/timeline blocks for threads
+│   │   └── MoveBlocks.css
 │   ├── NodePill.tsx        # Reusable pill component for nodes/spaces
 │   ├── NodePill.css
 │   ├── MentionInput.tsx    # Rich text input with @mentions
@@ -328,6 +381,8 @@ src/
 ├── services/
 │   ├── ParticleSystem.ts   # Canvas-based particle animation engine
 │   ├── CaseEngine.ts       # Legacy animation engine (unused)
+│   ├── threads/
+│   │   └── mockThreadAgent.ts # Mock agent event stream for thread UI
 │   └── agent/              # AI agent service
 │       ├── index.ts        # Public exports
 │       ├── client.ts       # AgentClient - API & tool loop
@@ -397,7 +452,9 @@ When a user sends a message, contextual information is automatically prepended u
 ```xml
 <context>
   <current_space id="facility-management">Facility Management</current_space>
-  <selected_node type="procedure" id="triage-1">Triage</selected_node>
+  <selected_nodes>
+    <node type="procedure" id="triage-1">Triage</node>
+  </selected_nodes>
 </context>
 
 What does this procedure do?
@@ -414,16 +471,20 @@ What does this procedure do?
 // src/components/ChatPanel.tsx
 function formatContextForAgent(
   currentSpace?: CurrentSpaceInfo | null,
-  selectedNode?: SelectedNodeInfo | null
+  selectedNodes?: SelectedNodeInfo[]
 ): string {
-  if (!currentSpace && !selectedNode) return ''
+  if (!currentSpace && (!selectedNodes || selectedNodes.length === 0)) return ''
   
   const parts: string[] = ['<context>']
   if (currentSpace) {
     parts.push(`  <current_space id="${currentSpace.id}">${currentSpace.label}</current_space>`)
   }
-  if (selectedNode) {
-    parts.push(`  <selected_node type="${selectedNode.type}" id="${selectedNode.id}">${selectedNode.label}</selected_node>`)
+  if (selectedNodes && selectedNodes.length > 0) {
+    parts.push('  <selected_nodes>')
+    for (const node of selectedNodes) {
+      parts.push(`    <node type="${node.type}" id="${node.id}">${node.label}</node>`)
+    }
+    parts.push('  </selected_nodes>')
   }
   parts.push('</context>')
   
