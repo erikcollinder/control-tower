@@ -207,6 +207,10 @@ interface CaseData {
   createdAt?: string      // Default: current date
   dueDate?: string        // Optional due date
   tags?: string[]         // Optional tag labels
+  attachedFiles?: string[] // Array of file names/paths
+  notepad?: string        // Free-form text field
+  currentStage?: string   // Current stage identifier
+  stageEnteredAt?: string // Timestamp for time-in-stage calculation
 }
 ```
 
@@ -214,8 +218,10 @@ interface CaseData {
 - Orange color theme (briefcase icon)
 - Status badge with icon (colored by status)
 - Priority badge (colored by severity)
-- Detail rows for assignee, created date, due date
+- Detail rows for assignee, stage, created date, due date
 - Optional tags displayed as chips
+- Attached files section with file list
+- Notepad section for free-form notes
 
 ### Event Stream Node
 Visualizes real-time event flow with an embedded canvas-based particle animation. Can spawn particles into the workflow like the Inbox node.
@@ -239,6 +245,96 @@ interface EventStreamNodeData {
 - **Important:** The node must have outgoing edges connected to other nodes for particles to flow
 - Particles follow the graph edges from the Event Stream node to connected nodes
 - Uses `particleSystem.spawnFrom(nodeId)` to spawn from the node's position
+
+---
+
+## Stage Detail View
+
+Cases flow through stages (Inbox → Procedure stages → Outbox). Users can view which cases are currently at any stage by clicking on it.
+
+### Accessing Stage Details
+
+**Three ways to open the Stage Detail Panel:**
+1. Click directly on a stage within a Procedure node on the canvas
+2. Click the chevron disclosure button on Inbox or Outbox nodes
+3. Open a Procedure Detail Panel and click the chevron next to any stage
+
+### Stage Detail Panel
+
+**Component**: `src/components/StageDetailPanel.tsx`
+
+Shows for a selected stage:
+- **Header**: Stage name and icon (varies by type: inbox, outbox, ai, manual, user, approval)
+- **Statistics**: 
+  - Total cases currently at this stage
+  - Average time cases spend at this stage
+- **Case List**: Scrollable list of all cases at the stage, showing:
+  - Case title and ID
+  - Status and priority badges
+  - Assignee
+  - Time in stage
+
+Clicking a case in the list opens the Case Detail Panel with full case information.
+
+### Mock Case Data
+
+**File**: `src/data/mockCases.ts`
+
+Contains 6 mock cases distributed across stages:
+- 2 in Inbox
+- 2 in Procedure stages
+- 2 in Outbox
+
+Helper functions:
+- `getCasesByStage(stageId)` - Filter cases by stage
+- `getAverageTimeInStage(stageId)` - Calculate average time in hours
+- `formatDuration(hours)` - Format durations (e.g., "2h", "3d 4h")
+- `getTimeInStage(timestamp)` - Get time since entering stage
+
+---
+
+## Stage Detail View
+
+Cases flow through stages (Inbox → Procedure stages → Outbox). Users can view which cases are currently at any stage by clicking on it.
+
+### Accessing Stage Details
+
+**Three ways to open the Stage Detail Panel:**
+1. Click directly on a stage within a Procedure node on the canvas
+2. Click the chevron disclosure button on Inbox or Outbox nodes
+3. Open a Procedure Detail Panel and click the chevron next to any stage
+
+### Stage Detail Panel
+
+**Component**: `src/components/StageDetailPanel.tsx`
+
+Shows for a selected stage:
+- **Header**: Stage name and icon (varies by type: inbox, outbox, ai, manual, user, approval)
+- **Statistics**: 
+  - Total cases currently at this stage
+  - Average time cases spend at this stage
+- **Case List**: Scrollable list of all cases at the stage, showing:
+  - Case title and ID
+  - Status and priority badges
+  - Assignee
+  - Time in stage
+
+Clicking a case in the list opens the Case Detail Panel with full case information.
+
+### Mock Case Data
+
+**File**: `src/data/mockCases.ts`
+
+Contains 6 mock cases distributed across stages:
+- 2 in Inbox
+- 2 in Procedure stages
+- 2 in Outbox
+
+Helper functions:
+- `getCasesByStage(stageId)` - Filter cases by stage
+- `getAverageTimeInStage(stageId)` - Calculate average time in hours
+- `formatDuration(hours)` - Format durations (e.g., "2h", "3d 4h")
+- `getTimeInStage(timestamp)` - Get time since entering stage
 
 ---
 
@@ -352,6 +448,12 @@ src/
 │   ├── Header.css
 │   ├── ChatPanel.tsx       # AI chat sidebar
 │   ├── ChatPanel.css
+│   ├── ProcedureDetailPanel.tsx # Procedure stages editor panel
+│   ├── ProcedureDetailPanel.css
+│   ├── CaseDetailPanel.tsx # Case details sidebar panel
+│   ├── CaseDetailPanel.css
+│   ├── StageDetailPanel.tsx # Stage details with case list
+│   ├── StageDetailPanel.css
 │   ├── ThreadsScreen.tsx   # Threads home (centered composer)
 │   ├── ThreadsScreen.css
 │   ├── ThreadView.tsx      # Thread detail (pinned message + timeline)
@@ -390,6 +492,8 @@ src/
 │       ├── tools.ts        # Tool definitions
 │       ├── types.ts        # TypeScript types
 │       └── mockResponses.ts
+├── data/
+│   └── mockCases.ts        # Mock case data for stage detail view
 ├── App.tsx
 ├── App.css
 ├── main.tsx
@@ -518,15 +622,17 @@ The context system can be extended to include:
 
 1. ~~**Fix Case animation**~~ ✅ Implemented canvas-based particle system with bezier curve interpolation
 
-2. **History Mode implementation** - When a time range is selected:
+2. ~~**Stage Detail View**~~ ✅ Implemented clickable stages with detail panel showing cases, statistics, and time tracking
+
+3. **History Mode implementation** - When a time range is selected:
    - Show aggregate counts on edges (e.g., "247 cases")
    - Filter/highlight nodes based on activity
 
-3. **Branching UI** - Visual tools for creating conditional branches in the workflow
+4. **Branching UI** - Visual tools for creating conditional branches in the workflow
 
-4. **Procedure Stage editing** - UI for adding/removing/reordering stages within a Procedure node
+5. **Procedure Stage editing** - UI for adding/removing/reordering stages within a Procedure node
 
-5. **Data persistence** - Save/load workflow configurations
+6. **Data persistence** - Save/load workflow configurations
 
 ---
 

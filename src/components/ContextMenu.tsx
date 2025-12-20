@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { FileText, Workflow, Bot, Table, BarChart3, Folder, CircleDotDashed, Briefcase, Radio } from 'lucide-react'
+import { FileText, Workflow, Bot, Table, BarChart3, Folder, CircleDotDashed, Briefcase, Radio, Plug2 } from 'lucide-react'
 import './ContextMenu.css'
 
 interface ContextMenuProps {
@@ -14,10 +14,11 @@ interface ContextMenuProps {
   onAddMarker: () => void
   onAddCase: () => void
   onAddEventStream: () => void
+  onAddConnector: () => void
   onClose: () => void
 }
 
-export function ContextMenu({ x, y, onAddFile, onAddProcedure, onAddAgent, onAddTable, onAddChart, onAddFolder, onAddMarker, onAddCase, onAddEventStream, onClose }: ContextMenuProps) {
+export function ContextMenu({ x, y, onAddFile, onAddProcedure, onAddAgent, onAddTable, onAddChart, onAddFolder, onAddMarker, onAddCase, onAddEventStream, onAddConnector, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -103,6 +104,12 @@ export function ContextMenu({ x, y, onAddFile, onAddProcedure, onAddAgent, onAdd
             <Radio size={14} />
           </div>
           <span>Event Stream</span>
+        </button>
+        <button className="context-menu-item" onClick={onAddConnector}>
+          <div className="context-menu-icon connector-item">
+            <Plug2 size={14} />
+          </div>
+          <span>Connector</span>
         </button>
       </div>
     </div>

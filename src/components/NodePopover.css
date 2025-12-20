@@ -180,4 +180,71 @@
   background: var(--mono-150);
 }
 
+/* Text Input */
+.text-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.text-input-label {
+  font-size: 12px;
+  color: var(--mono-600);
+  font-weight: 500;
+}
+
+.text-input-field {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--mono-800);
+  background: var(--mono-0);
+  border: 1px solid var(--alpha-film-150);
+  border-radius: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.text-input-field:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+}
+
+.text-input-field::placeholder {
+  color: var(--mono-400);
+}
+
+/* Select Input */
+.select-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.select-input-label {
+  font-size: 12px;
+  color: var(--mono-600);
+  font-weight: 500;
+}
+
+.select-input-field {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--mono-800);
+  background: var(--mono-0);
+  border: 1px solid var(--alpha-film-150);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 32px;
+}
+
+.select-input-field:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+}
 

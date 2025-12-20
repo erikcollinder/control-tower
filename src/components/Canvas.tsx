@@ -26,6 +26,7 @@ import { FolderNode } from './nodes/FolderNode'
 import { MarkerNode } from './nodes/MarkerNode'
 import { CaseNode } from './nodes/CaseNode'
 import { EventStreamNode } from './nodes/EventStreamNode'
+import { ConnectorNode } from './nodes/ConnectorNode'
 import { ContextMenu } from './ContextMenu'
 import { NodeToolbar } from './NodeToolbar'
 import { Timeline } from './Timeline'
@@ -59,6 +60,7 @@ const nodeTypes = {
   marker: MarkerNode,
   case: CaseNode,
   eventStream: EventStreamNode,
+  connector: ConnectorNode,
 }
 
 const initialNodes: Node[] = [
@@ -463,6 +465,30 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
     }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [particleSystem, setNodes, eventStreamNodeIds])
+
+  // Update connector nodes with the spawn event callback
+  // Track connector node IDs to re-run when new ones are added
+  const connectorNodeIds = useMemo(() => 
+    nodes.filter(n => n.type === 'connector').map(n => n.id).join(','),
+    [nodes]
+  )
+  
+  useEffect(() => {
+    setNodes(nds => nds.map(node => {
+      if (node.type === 'connector') {
+        const nodeId = node.id
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            onSpawnEvent: () => particleSystem.spawnFrom(nodeId),
+          }
+        }
+      }
+      return node
+    }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [particleSystem, setNodes, connectorNodeIds])
   
   // Update inbox and outbox nodes with the stage click callback
   useEffect(() => {
@@ -676,7 +702,7 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
   )
 
   const addNode = useCallback(
-    (type: 'file' | 'procedure' | 'agent' | 'table' | 'chart' | 'folder' | 'marker' | 'case' | 'eventStream') => {
+    (type: 'file' | 'procedure' | 'agent' | 'table' | 'chart' | 'folder' | 'marker' | 'case' | 'eventStream' | 'connector') => {
       const id = `${type}-${Date.now()}`
       const labels = {
         file: 'New File',
@@ -688,6 +714,7 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
         marker: 'New Marker',
         case: 'New Case',
         eventStream: 'New Event Stream',
+        connector: 'New Connector',
       }
 
       const nodeData: Record<string, unknown> = { label: labels[type] }
@@ -711,6 +738,14 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
       // Add default data for event stream nodes
       if (type === 'eventStream') {
         nodeData.eventsPerMinute = 240
+      }
+
+      // Add default data for connector nodes
+      if (type === 'connector') {
+        nodeData.connectorType = 'salesforce'
+        nodeData.testingMode = false
+        nodeData.casesPerMinute = 60
+        nodeData.config = {}
       }
 
       const newNode: Node = {
@@ -981,6 +1016,7 @@ function CanvasInner({ gridType, gridScale, gridOpacity, showParticleTrails, onS
           onAddMarker={() => addNode('marker')}
           onAddCase={() => addNode('case')}
           onAddEventStream={() => addNode('eventStream')}
+          onAddConnector={() => addNode('connector')}
           onClose={() => setContextMenu((prev) => ({ ...prev, show: false }))}
         />
       )}

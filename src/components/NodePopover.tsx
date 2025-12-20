@@ -245,4 +245,240 @@ export function EventStreamPopover({
   )
 }
 
+type ConnectorType = 'salesforce' | 'sap' | 'sharepoint' | 'sftp' | 'email'
+
+interface ConnectorPopoverProps {
+  connectorType: ConnectorType
+  config: Record<string, string>
+  casesPerMinute: number
+  onConfigChange: (config: Record<string, string>) => void
+  onCasesPerMinuteChange: (value: number) => void
+  onClose: () => void
+}
+
+interface TextInputProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}
+
+function TextInput({ label, value, onChange, placeholder }: TextInputProps) {
+  return (
+    <div className="text-input">
+      <span className="text-input-label">{label}</span>
+      <input
+        type="text"
+        className="text-input-field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  )
+}
+
+interface SelectInputProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: { value: string; label: string }[]
+}
+
+function SelectInput({ label, value, onChange, options }: SelectInputProps) {
+  return (
+    <div className="select-input">
+      <span className="select-input-label">{label}</span>
+      <select
+        className="select-input-field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function SalesforceConfig({ config, onConfigChange }: { config: Record<string, string>; onConfigChange: (config: Record<string, string>) => void }) {
+  return (
+    <>
+      <TextInput
+        label="Instance URL"
+        value={config.instanceUrl ?? ''}
+        onChange={(v) => onConfigChange({ ...config, instanceUrl: v })}
+        placeholder="https://mycompany.salesforce.com"
+      />
+      <SelectInput
+        label="Object Type"
+        value={config.objectType ?? 'Case'}
+        onChange={(v) => onConfigChange({ ...config, objectType: v })}
+        options={[
+          { value: 'Lead', label: 'Lead' },
+          { value: 'Opportunity', label: 'Opportunity' },
+          { value: 'Case', label: 'Case' },
+          { value: 'Account', label: 'Account' },
+        ]}
+      />
+    </>
+  )
+}
+
+function SapConfig({ config, onConfigChange }: { config: Record<string, string>; onConfigChange: (config: Record<string, string>) => void }) {
+  return (
+    <>
+      <TextInput
+        label="System ID"
+        value={config.systemId ?? ''}
+        onChange={(v) => onConfigChange({ ...config, systemId: v })}
+        placeholder="PRD"
+      />
+      <TextInput
+        label="Client"
+        value={config.client ?? ''}
+        onChange={(v) => onConfigChange({ ...config, client: v })}
+        placeholder="100"
+      />
+      <TextInput
+        label="RFC Destination"
+        value={config.rfcDestination ?? ''}
+        onChange={(v) => onConfigChange({ ...config, rfcDestination: v })}
+        placeholder="SAP_RFC_DEST"
+      />
+    </>
+  )
+}
+
+function SharePointConfig({ config, onConfigChange }: { config: Record<string, string>; onConfigChange: (config: Record<string, string>) => void }) {
+  return (
+    <>
+      <TextInput
+        label="Site URL"
+        value={config.siteUrl ?? ''}
+        onChange={(v) => onConfigChange({ ...config, siteUrl: v })}
+        placeholder="https://company.sharepoint.com/sites/mysite"
+      />
+      <TextInput
+        label="List Name"
+        value={config.listName ?? ''}
+        onChange={(v) => onConfigChange({ ...config, listName: v })}
+        placeholder="Documents"
+      />
+      <TextInput
+        label="Document Library"
+        value={config.documentLibrary ?? ''}
+        onChange={(v) => onConfigChange({ ...config, documentLibrary: v })}
+        placeholder="Shared Documents"
+      />
+    </>
+  )
+}
+
+function SftpConfig({ config, onConfigChange }: { config: Record<string, string>; onConfigChange: (config: Record<string, string>) => void }) {
+  return (
+    <>
+      <TextInput
+        label="Host"
+        value={config.host ?? ''}
+        onChange={(v) => onConfigChange({ ...config, host: v })}
+        placeholder="sftp.example.com"
+      />
+      <TextInput
+        label="Port"
+        value={config.port ?? '22'}
+        onChange={(v) => onConfigChange({ ...config, port: v })}
+        placeholder="22"
+      />
+      <TextInput
+        label="Path"
+        value={config.path ?? ''}
+        onChange={(v) => onConfigChange({ ...config, path: v })}
+        placeholder="/inbox"
+      />
+      <TextInput
+        label="Username"
+        value={config.username ?? ''}
+        onChange={(v) => onConfigChange({ ...config, username: v })}
+        placeholder="user"
+      />
+    </>
+  )
+}
+
+function EmailConfig({ config, onConfigChange }: { config: Record<string, string>; onConfigChange: (config: Record<string, string>) => void }) {
+  return (
+    <>
+      <TextInput
+        label="IMAP Server"
+        value={config.imapServer ?? ''}
+        onChange={(v) => onConfigChange({ ...config, imapServer: v })}
+        placeholder="imap.gmail.com"
+      />
+      <TextInput
+        label="Folder"
+        value={config.folder ?? 'INBOX'}
+        onChange={(v) => onConfigChange({ ...config, folder: v })}
+        placeholder="INBOX"
+      />
+      <SelectInput
+        label="Polling Interval"
+        value={config.pollingInterval ?? '60'}
+        onChange={(v) => onConfigChange({ ...config, pollingInterval: v })}
+        options={[
+          { value: '30', label: '30 seconds' },
+          { value: '60', label: '1 minute' },
+          { value: '300', label: '5 minutes' },
+          { value: '900', label: '15 minutes' },
+        ]}
+      />
+    </>
+  )
+}
+
+export function ConnectorPopover({
+  connectorType,
+  config,
+  casesPerMinute,
+  onConfigChange,
+  onCasesPerMinuteChange,
+  onClose,
+}: ConnectorPopoverProps) {
+  const typeLabels: Record<ConnectorType, string> = {
+    salesforce: 'Salesforce',
+    sap: 'SAP',
+    sharepoint: 'SharePoint',
+    sftp: 'SFTP',
+    email: 'Email',
+  }
+
+  return (
+    <NodePopover onClose={onClose}>
+      <div className="popover-header">{typeLabels[connectorType]} Settings</div>
+      <div className="popover-content">
+        {connectorType === 'salesforce' && <SalesforceConfig config={config} onConfigChange={onConfigChange} />}
+        {connectorType === 'sap' && <SapConfig config={config} onConfigChange={onConfigChange} />}
+        {connectorType === 'sharepoint' && <SharePointConfig config={config} onConfigChange={onConfigChange} />}
+        {connectorType === 'sftp' && <SftpConfig config={config} onConfigChange={onConfigChange} />}
+        {connectorType === 'email' && <EmailConfig config={config} onConfigChange={onConfigChange} />}
+        <div className="popover-divider" />
+        <Stepper
+          label="Test cases per minute"
+          value={casesPerMinute}
+          onChange={onCasesPerMinuteChange}
+          min={0}
+          max={200}
+          step={10}
+          unit="/min"
+        />
+      </div>
+    </NodePopover>
+  )
+}
+
 
