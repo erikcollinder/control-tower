@@ -186,6 +186,19 @@ function App() {
           showChatToggle={headerConfig.showChatToggle}
           isChatOpen={isChatOpen}
           onToggleChat={() => setIsChatOpen(prev => !prev)}
+          selectedNodes={selectedNodes}
+          openPanel={openPanel}
+          onClearSelection={(nodeId) => {
+            if (nodeId) {
+              setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
+            } else {
+              setSelectedNodes([])
+            }
+          }}
+          onClearOpenPanel={() => {
+            setOpenPanel(null)
+            closeAllPanelsHandler?.()
+          }}
         />
 
         {route.id === 'spaces' && (

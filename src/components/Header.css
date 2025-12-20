@@ -57,7 +57,13 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: 8px;
+}
+
+.header-context-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .chat-toggle {

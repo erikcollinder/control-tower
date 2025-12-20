@@ -1,5 +1,8 @@
 import type { ComponentType } from 'react'
 import { ChevronDown, MessageCircle } from 'lucide-react'
+import { NodePill } from './NodePill'
+import type { SelectedNodeInfo } from './Canvas'
+import type { OpenPanelInfo } from './ChatPanel'
 import './Header.css'
 
 type HeaderIcon = ComponentType<{ size?: number | string }>
@@ -14,6 +17,11 @@ interface HeaderProps {
   showChatToggle?: boolean
   isChatOpen?: boolean
   onToggleChat?: () => void
+  
+  selectedNodes?: SelectedNodeInfo[]
+  openPanel?: OpenPanelInfo | null
+  onClearSelection?: (nodeId?: string) => void
+  onClearOpenPanel?: () => void
 }
 
 export function Header({
@@ -25,6 +33,10 @@ export function Header({
   showChatToggle = true,
   isChatOpen = false,
   onToggleChat,
+  selectedNodes = [],
+  openPanel,
+  onClearSelection,
+  onClearOpenPanel,
 }: HeaderProps) {
   return (
     <header className="header">
@@ -50,6 +62,27 @@ export function Header({
       </div>
 
       <div className="header-actions">
+        {!isChatOpen && (selectedNodes.length > 0 || openPanel) && (
+          <div className="header-context-pills">
+            {selectedNodes.map(node => (
+              <NodePill
+                key={node.id}
+                label={node.label}
+                nodeType={node.type}
+                className="selection-pill"
+                onRemove={() => onClearSelection?.(node.id)}
+              />
+            ))}
+            {openPanel && (
+              <NodePill
+                label={openPanel.label}
+                nodeType={openPanel.type}
+                className="panel-pill"
+                onRemove={onClearOpenPanel}
+              />
+            )}
+          </div>
+        )}
         {showChatToggle && (
           <button
             className={`chat-toggle ${isChatOpen ? 'active' : ''}`}
