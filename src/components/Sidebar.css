@@ -89,3 +89,28 @@
   color: var(--mono-700);
 }
 
+.sidebar-input-mode-indicator {
+  margin-top: auto;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.input-mode-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: var(--mono-400);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.input-mode-icon.text-editing {
+  color: var(--blue-600);
+  background: var(--alpha-blue-100);
+}
+

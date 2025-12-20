@@ -1,4 +1,5 @@
-import { CheckSquare, LayoutGrid, Box, Settings, Users, Folder, Menu, MessageSquare } from 'lucide-react'
+import { CheckSquare, LayoutGrid, Box, Settings, Users, Folder, Menu, MessageSquare, Type, Keyboard } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import './Sidebar.css'
 
 interface NavItem {
@@ -17,6 +18,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onSettingsClick, activeId = 'spaces', onNavigate }: SidebarProps) {
+  const [isTextEditing, setIsTextEditing] = useState(false)
+
   const navItems: NavItem[] = [
     { id: 'tasks', icon: CheckSquare, label: 'Tasks', onClick: () => onNavigate?.('tasks') },
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', onClick: () => onNavigate?.('dashboard') },
@@ -25,6 +28,31 @@ export function Sidebar({ onSettingsClick, activeId = 'spaces', onNavigate }: Si
     { id: 'settings', icon: Settings, label: 'Settings', onClick: onSettingsClick },
     { id: 'team', icon: Users, label: 'Team', onClick: () => onNavigate?.('team') },
   ]
+
+  // Track text editing mode globally
+  useEffect(() => {
+    const checkTextEditing = () => {
+      const activeElement = document.activeElement
+      const isEditing = 
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        (activeElement instanceof HTMLElement && activeElement.isContentEditable)
+      
+      setIsTextEditing(isEditing)
+    }
+
+    // Check on focus/blur events
+    window.addEventListener('focusin', checkTextEditing)
+    window.addEventListener('focusout', checkTextEditing)
+    
+    // Initial check
+    checkTextEditing()
+
+    return () => {
+      window.removeEventListener('focusin', checkTextEditing)
+      window.removeEventListener('focusout', checkTextEditing)
+    }
+  }, [])
 
   return (
     <aside className="sidebar">
@@ -51,6 +79,15 @@ export function Sidebar({ onSettingsClick, activeId = 'spaces', onNavigate }: Si
             <item.icon size={16} />
           </button>
         ))}
+      </div>
+
+      <div className="sidebar-input-mode-indicator">
+        <div 
+          className={`input-mode-icon ${isTextEditing ? 'text-editing' : ''}`}
+          title={isTextEditing ? 'Text editing mode' : 'Keyboard shortcuts active'}
+        >
+          {isTextEditing ? <Type size={16} /> : <Keyboard size={16} />}
+        </div>
       </div>
     </aside>
   )
