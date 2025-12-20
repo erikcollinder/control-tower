@@ -125,6 +125,7 @@ interface ChatPanelProps {
   onClearOpenPanel?: () => void
   mentionOptions?: MentionOption[]
   onCreateProcedure?: (title: string, stages: ProcedureStageInput[]) => void
+  onUpdateProcedure?: (procedureId: string, stages: ProcedureStageInput[]) => void
 }
 
 // Tool icon mapping
@@ -136,6 +137,7 @@ function getToolIcon(toolName: string) {
     case 'list_files': return <FolderOpen size={14} />
     case 'think': return <Lightbulb size={14} />
     case 'create_procedure': return <ListTodo size={14} />
+    case 'update_procedure': return <ListTodo size={14} />
     default: return <Terminal size={14} />
   }
 }
@@ -275,7 +277,7 @@ function UserMessageView({ content }: { content: string }) {
   )
 }
 
-export function ChatPanel({ isOpen, onClose, currentSpace, selectedNodes = [], openPanel, onClearSelection, onClearOpenPanel, mentionOptions = [], onCreateProcedure }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, currentSpace, selectedNodes = [], openPanel, onClearSelection, onClearOpenPanel, mentionOptions = [], onCreateProcedure, onUpdateProcedure }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -292,6 +294,11 @@ export function ChatPanel({ isOpen, onClose, currentSpace, selectedNodes = [], o
   useEffect(() => {
     onCreateProcedureRef.current = onCreateProcedure
   }, [onCreateProcedure])
+
+  const onUpdateProcedureRef = useRef(onUpdateProcedure)
+  useEffect(() => {
+    onUpdateProcedureRef.current = onUpdateProcedure
+  }, [onUpdateProcedure])
 
   const clearChat = () => {
     setMessages([])
@@ -455,6 +462,12 @@ export function ChatPanel({ isOpen, onClose, currentSpace, selectedNodes = [], o
         if (data.name === 'create_procedure' && onCreateProcedureRef.current) {
           const { title, stages } = data.input as { title: string; stages: ProcedureStageInput[] }
           onCreateProcedureRef.current(title, stages)
+        }
+
+        // Handle update_procedure tool - invoke the callback to update existing node on canvas
+        if (data.name === 'update_procedure' && onUpdateProcedureRef.current) {
+          const { procedureId, stages } = data.input as { procedureId: string; stages: ProcedureStageInput[] }
+          onUpdateProcedureRef.current(procedureId, stages)
         }
         
         if (!isThinkingTool(data.name)) {

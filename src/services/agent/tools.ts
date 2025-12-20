@@ -133,6 +133,43 @@ export const createProcedureTool: Tool = {
 }
 
 /**
+ * Update procedure tool - updates an existing Procedure node on the canvas
+ */
+export const updateProcedureTool: Tool = {
+  name: 'update_procedure',
+  description: 'Update an existing Procedure node on the canvas by replacing its stages. The procedure ID and label remain unchanged. Use this when the user asks to modify, update, or change an existing procedure.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      procedureId: {
+        type: 'string',
+        description: 'The ID of the procedure node to update (e.g., "procedure-1234567890")'
+      },
+      stages: {
+        type: 'array',
+        description: 'The new array of stages to replace the existing ones. Each stage has a label and a type.',
+        items: {
+          type: 'object',
+          properties: {
+            label: {
+              type: 'string',
+              description: 'The name/description of this stage'
+            },
+            type: {
+              type: 'string',
+              enum: ['ai', 'manual', 'user', 'approval', 'default'],
+              description: 'The type of stage: "ai" for AI-automated steps, "manual" for manual work, "user" for user input required, "approval" for approval gates, "default" for general steps'
+            }
+          },
+          required: ['label', 'type']
+        }
+      }
+    },
+    required: ['procedureId', 'stages']
+  }
+}
+
+/**
  * All available tools for the agent
  */
 export const tools: Tool[] = [
@@ -141,7 +178,8 @@ export const tools: Tool[] = [
   searchCodebaseTool,
   executeCommandTool,
   listFilesTool,
-  createProcedureTool
+  createProcedureTool,
+  updateProcedureTool
 ]
 
 /**
@@ -153,7 +191,7 @@ export const THINKING_TOOL_NAMES = ['think']
 /**
  * Tool names that perform actions on the canvas (require callbacks)
  */
-export const ACTION_TOOL_NAMES = ['create_procedure']
+export const ACTION_TOOL_NAMES = ['create_procedure', 'update_procedure']
 
 /**
  * Check if a tool name is a thinking tool

@@ -36,7 +36,12 @@ export interface CreateProcedureInput {
   stages: ProcedureStageInput[]
 }
 
-type ToolInput = ReadFileInput | SearchCodebaseInput | ExecuteCommandInput | ListFilesInput | ThinkInput | CreateProcedureInput
+export interface UpdateProcedureInput {
+  procedureId: string
+  stages: ProcedureStageInput[]
+}
+
+type ToolInput = ReadFileInput | SearchCodebaseInput | ExecuteCommandInput | ListFilesInput | ThinkInput | CreateProcedureInput | UpdateProcedureInput
 
 /**
  * Mock file contents for demo purposes
@@ -194,6 +199,11 @@ nothing to commit, working tree clean`
     case 'create_procedure': {
       const { title, stages } = input as CreateProcedureInput
       return `Created procedure "${title}" with ${stages.length} stages.`
+    }
+
+    case 'update_procedure': {
+      const { procedureId, stages } = input as UpdateProcedureInput
+      return `Updated procedure "${procedureId}" with ${stages.length} stages.`
     }
 
     default:

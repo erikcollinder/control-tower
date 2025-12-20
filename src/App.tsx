@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Sidebar } from './components/Sidebar'
-import { Canvas, SelectedNodeInfo, CanvasNodeInfo, CreateProcedureHandler } from './components/Canvas'
+import { Canvas, SelectedNodeInfo, CanvasNodeInfo, CreateProcedureHandler, UpdateProcedureHandler } from './components/Canvas'
 import { Header } from './components/Header'
 import { ChatPanel, OpenPanelInfo } from './components/ChatPanel'
 import { ThreadsScreen } from './components/ThreadsScreen'
@@ -49,6 +49,7 @@ function App() {
   const [canvasNodes, setCanvasNodes] = useState<CanvasNodeInfo[]>([])
   const [openPanel, setOpenPanel] = useState<OpenPanelInfo | null>(null)
   const [createProcedureHandler, setCreateProcedureHandler] = useState<CreateProcedureHandler | null>(null)
+  const [updateProcedureHandler, setUpdateProcedureHandler] = useState<UpdateProcedureHandler | null>(null)
   const [closeAllPanelsHandler, setCloseAllPanelsHandler] = useState<(() => void) | null>(null)
 
   const [threads, setThreads] = useState<Thread[]>([])
@@ -61,6 +62,11 @@ function App() {
   // Store the create procedure handler when Canvas is ready
   const handleCreateProcedureReady = useCallback((handler: CreateProcedureHandler) => {
     setCreateProcedureHandler(() => handler)
+  }, [])
+
+  // Store the update procedure handler when Canvas is ready
+  const handleUpdateProcedureReady = useCallback((handler: UpdateProcedureHandler) => {
+    setUpdateProcedureHandler(() => handler)
   }, [])
 
   const handleCloseAllPanelsReady = useCallback((handler: () => void) => {
@@ -212,6 +218,7 @@ function App() {
               onNodesListChange={setCanvasNodes}
               onOpenPanelChange={setOpenPanel}
               onCreateProcedureReady={handleCreateProcedureReady}
+              onUpdateProcedureReady={handleUpdateProcedureReady}
               onCloseAllPanelsReady={handleCloseAllPanelsReady}
             />
           </>
@@ -273,6 +280,7 @@ function App() {
           }}
           mentionOptions={mentionOptions}
           onCreateProcedure={createProcedureHandler ?? undefined}
+          onUpdateProcedure={updateProcedureHandler ?? undefined}
         />
       )}
       <PreferencesModal
