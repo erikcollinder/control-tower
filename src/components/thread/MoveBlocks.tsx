@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Lightbulb,
   ListTodo,
+  MessageSquare,
   Search,
   Terminal,
 } from 'lucide-react'
@@ -34,28 +35,70 @@ export function UserMessageBubble({ content, sticky = false }: { content: string
   )
 }
 
-function getToolIcon(toolName: string) {
+interface ToolMeta {
+  icon: React.ReactNode
+  label: string
+}
+
+function getToolMeta(toolName: string): ToolMeta {
   switch (toolName) {
     case 'read_file':
-      return <FileText size={14} />
+      return { icon: <FileText size={12} />, label: 'Reading File' }
     case 'search_codebase':
-      return <Search size={14} />
+      return { icon: <Search size={12} />, label: 'Searching Codebase' }
     case 'execute_command':
-      return <Terminal size={14} />
+      return { icon: <Terminal size={12} />, label: 'Running Command' }
     case 'list_files':
-      return <FolderOpen size={14} />
+      return { icon: <FolderOpen size={12} />, label: 'Listing Files' }
     case 'think':
-      return <Lightbulb size={14} />
+      return { icon: <Lightbulb size={12} />, label: 'Thinking' }
     case 'create_procedure':
-      return <ListTodo size={14} />
-
-    // Common agent tools in this app/prototype
+      return { icon: <ListTodo size={12} />, label: 'Creating Procedure' }
     case 'web_search':
-      return <Search size={14} />
-
+      return { icon: <Search size={12} />, label: 'Searching Web' }
+    case 'edit_file':
+      return { icon: <FileText size={12} />, label: 'Editing File' }
+    case 'create_file':
+      return { icon: <FileText size={12} />, label: 'Creating File' }
+    case 'delete_file':
+      return { icon: <FileText size={12} />, label: 'Deleting File' }
     default:
-      return <Terminal size={14} />
+      // Fallback: convert snake_case to Title Case for unknown tools
+      const words = toolName.split('_')
+      const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      return { icon: <Terminal size={12} />, label: titleCase }
   }
+}
+
+// Stepper wrapper component
+function MoveStep({
+  icon,
+  isActive,
+  isDone,
+  isLast,
+  variant,
+  children,
+}: {
+  icon: React.ReactNode
+  isActive?: boolean
+  isDone?: boolean
+  isLast?: boolean
+  variant?: 'thinking' | 'tool' | 'final'
+  children: React.ReactNode
+}) {
+  return (
+    <div className={`move-step ${isLast ? 'last' : ''}`}>
+      <div className="step-rail">
+        <div className={`step-icon ${variant ?? ''} ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
+          {icon}
+        </div>
+        {!isLast && <div className="step-line" />}
+      </div>
+      <div className="step-content">
+        {children}
+      </div>
+    </div>
+  )
 }
 
 export function ThinkingBlock({
@@ -72,7 +115,6 @@ export function ThinkingBlock({
   return (
     <div className={`move thinking-block ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="move-header" onClick={onToggle}>
-        <Lightbulb size={14} />
         <span>Thinking</span>
         <ChevronRight size={14} className="chevron" />
       </div>
@@ -104,12 +146,12 @@ export function ToolCallBlock({
   onToggle: () => void
 }) {
   const showResult = typeof resultText === 'string' && resultText.length > 0
+  const meta = getToolMeta(name)
 
   return (
     <div className={`move tool-block ${isCollapsed ? 'collapsed' : ''} status-${status}`}>
       <div className="move-header" onClick={onToggle}>
-        {getToolIcon(name)}
-        <span className="tool-name">{name}</span>
+        <span className="tool-label">{meta.label}</span>
         <span className={`tool-status-pill ${status}`}>{status}</span>
         <ChevronRight size={14} className="chevron" />
       </div>
@@ -135,6 +177,9 @@ export function ToolCallBlock({
     </div>
   )
 }
+
+// Export getToolMeta for use in AgentTurnView
+export { getToolMeta }
 
 export function LoadingIndicator({ label = 'Processing…' }: { label?: string }) {
   return (
@@ -185,6 +230,9 @@ export function AgentTurnView({
     })
   }
 
+  const hasFinalAnswer = finalSegments.length > 0
+  const isFinalAnswerDone = hasFinalAnswer && !isStreaming
+
   return (
     <div className="agent-turn">
       <div className="turn-header">
@@ -196,41 +244,73 @@ export function AgentTurnView({
         </span>
       </div>
 
-      {moves.map((move) => {
-        if (move.type === 'thinking') {
-          // Thinking: expanded by default, toggled = collapsed
+      <div className="move-steps">
+        {moves.map((move, index) => {
+          const isLastMove = index === moves.length - 1 && !hasFinalAnswer
+
+          if (move.type === 'thinking') {
+            const isThinkingDone = !move.isStreaming
+            return (
+              <MoveStep
+                key={move.id}
+                icon={<Lightbulb size={12} />}
+                isActive={move.isStreaming}
+                isDone={isThinkingDone}
+                isLast={isLastMove}
+                variant="thinking"
+              >
+                <ThinkingBlock
+                  segments={move.segments}
+                  isCollapsed={toggledMoves.has(move.id)}
+                  onToggle={() => toggleMove(move.id)}
+                  isStreaming={move.isStreaming}
+                />
+              </MoveStep>
+            )
+          }
+
+          // Tool calls
+          const meta = getToolMeta(move.name)
+          const isToolDone = move.status === 'done'
+          const isToolActive = move.status === 'forming' || move.status === 'running'
+          
           return (
-            <ThinkingBlock
+            <MoveStep
               key={move.id}
-              segments={move.segments}
-              isCollapsed={toggledMoves.has(move.id)}
-              onToggle={() => toggleMove(move.id)}
-              isStreaming={move.isStreaming}
-            />
+              icon={meta.icon}
+              isActive={isToolActive}
+              isDone={isToolDone}
+              isLast={isLastMove}
+              variant="tool"
+            >
+              <ToolCallBlock
+                name={move.name}
+                inputText={move.inputText}
+                inputObject={move.inputObject}
+                resultText={move.resultText}
+                status={move.status}
+                isCollapsed={!toggledMoves.has(move.id)}
+                onToggle={() => toggleMove(move.id)}
+              />
+            </MoveStep>
           )
-        }
+        })}
 
-        // Tool calls: collapsed by default, toggled = expanded
-        return (
-          <ToolCallBlock
-            key={move.id}
-            name={move.name}
-            inputText={move.inputText}
-            inputObject={move.inputObject}
-            resultText={move.resultText}
-            status={move.status}
-            isCollapsed={!toggledMoves.has(move.id)}
-            onToggle={() => toggleMove(move.id)}
-          />
-        )
-      })}
-
-      {finalSegments.length > 0 && (
-        <div className="final-answer">
-          <StreamText segments={finalSegments} />
-          {isStreaming && <span className="inline-cursor" />}
-        </div>
-      )}
+        {hasFinalAnswer && (
+          <MoveStep
+            icon={<MessageSquare size={12} />}
+            isActive={isStreaming}
+            isDone={isFinalAnswerDone}
+            isLast={true}
+            variant="final"
+          >
+            <div className="final-answer">
+              <StreamText segments={finalSegments} />
+              {isStreaming && <span className="inline-cursor" />}
+            </div>
+          </MoveStep>
+        )}
+      </div>
     </div>
   )
 }
