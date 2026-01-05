@@ -8,7 +8,7 @@ import { ThreadView } from './components/ThreadView'
 import { PreferencesModal, GridType } from './components/PreferencesModal'
 import { MentionOption } from './components/MentionDropdown'
 import './App.css'
-import { Globe, Factory, MessageSquare } from 'lucide-react'
+import { Globe, Factory, MessageSquare, Trash2, RotateCcw } from 'lucide-react'
 
 // Default opacities: dots are more pronounced, lines are fainter
 const DEFAULT_OPACITY = { dots: 0.7, lines: 0.25 }
@@ -53,6 +53,7 @@ function App() {
   const [closeAllPanelsHandler, setCloseAllPanelsHandler] = useState<(() => void) | null>(null)
 
   const [threads, setThreads] = useState<Thread[]>([])
+  const [threadResetKey, setThreadResetKey] = useState(0)
   const [pendingMessageTransition, setPendingMessageTransition] = useState<{
     threadId: string
     messageId: string
@@ -164,6 +165,21 @@ function App() {
         contextLabel: currentThread?.title ?? 'Thread',
         showContextChevron: false,
         showChatToggle: false,
+        contextMenuItems: [
+          {
+            id: 'restart-thread',
+            label: 'Restart',
+            icon: RotateCcw,
+            onClick: () => setThreadResetKey(k => k + 1),
+          },
+          {
+            id: 'clear-thread',
+            label: 'Clear thread',
+            icon: Trash2,
+            danger: true,
+            onClick: () => setRoute({ id: 'threadsHome' }),
+          },
+        ],
       }
     }
 
@@ -189,6 +205,7 @@ function App() {
           contextLabel={headerConfig.contextLabel}
           ContextIcon={headerConfig.ContextIcon}
           showContextChevron={headerConfig.showContextChevron}
+          contextMenuItems={'contextMenuItems' in headerConfig ? headerConfig.contextMenuItems : undefined}
           showChatToggle={headerConfig.showChatToggle}
           isChatOpen={isChatOpen}
           onToggleChat={() => setIsChatOpen(prev => !prev)}
@@ -228,6 +245,7 @@ function App() {
 
         {route.id === 'threadDetail' && currentThread && (
           <ThreadView
+            key={`${currentThread.id}-${threadResetKey}`}
             threadId={currentThread.id}
             threadTitle={currentThread.title}
             initialMessage={currentThread.messages[0]!}

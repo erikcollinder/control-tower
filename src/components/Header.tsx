@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
-import { ChevronDown, MessageCircle } from 'lucide-react'
+import { ChevronDown, MessageCircle, Trash2 } from 'lucide-react'
 import { NodePill } from './NodePill'
+import { DropdownMenu, type DropdownMenuItem } from './DropdownMenu'
 import type { SelectedNodeInfo } from './Canvas'
 import type { OpenPanelInfo } from './ChatPanel'
 import './Header.css'
@@ -13,6 +14,7 @@ interface HeaderProps {
   contextLabel?: string
   ContextIcon?: HeaderIcon
   showContextChevron?: boolean
+  contextMenuItems?: DropdownMenuItem[]
 
   showChatToggle?: boolean
   isChatOpen?: boolean
@@ -24,12 +26,15 @@ interface HeaderProps {
   onClearOpenPanel?: () => void
 }
 
+export { Trash2 }
+
 export function Header({
   sectionLabel,
   SectionIcon,
   contextLabel,
   ContextIcon,
   showContextChevron = false,
+  contextMenuItems,
   showChatToggle = true,
   isChatOpen = false,
   onToggleChat,
@@ -38,6 +43,20 @@ export function Header({
   onClearSelection,
   onClearOpenPanel,
 }: HeaderProps) {
+  const hasContextMenu = contextMenuItems && contextMenuItems.length > 0
+
+  const contextButton = (
+    <button className="breadcrumb-item space-selector">
+      {ContextIcon && (
+        <div className="space-avatar">
+          <ContextIcon size={12} />
+        </div>
+      )}
+      <span>{contextLabel}</span>
+      {(showContextChevron || hasContextMenu) && <ChevronDown size={14} />}
+    </button>
+  )
+
   return (
     <header className="header">
       <div className="breadcrumb">
@@ -48,15 +67,11 @@ export function Header({
         {contextLabel && (
           <>
             <span className="breadcrumb-separator">/</span>
-            <button className="breadcrumb-item space-selector">
-              {ContextIcon && (
-                <div className="space-avatar">
-                  <ContextIcon size={12} />
-                </div>
-              )}
-              <span>{contextLabel}</span>
-              {showContextChevron && <ChevronDown size={14} />}
-            </button>
+            {hasContextMenu ? (
+              <DropdownMenu trigger={contextButton} items={contextMenuItems} align="left" />
+            ) : (
+              contextButton
+            )}
           </>
         )}
       </div>

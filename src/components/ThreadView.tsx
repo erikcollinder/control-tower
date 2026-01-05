@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Send } from 'lucide-react'
 import type { AgentStreamEvent } from '../services/agent/types'
 import { runMockThreadTurn } from '../services/threads/mockThreadAgent'
@@ -29,6 +29,7 @@ type ThreadMove =
 
 type ThreadTurn = {
   id: string
+  userMessage: string
   moves: ThreadMove[]
   finalSegments: StreamSegment[]
   isStreaming: boolean
@@ -51,18 +52,21 @@ export function ThreadView({
   const pinnedRef = useRef<HTMLDivElement>(null)
 
   const [composerText, setComposerText] = useState('')
-  const [turn, setTurn] = useState<ThreadTurn>(() => ({
-    id: `turn-${threadId}`,
+  
+  // All conversation turns (first one is from initial message, subsequent from follow-ups)
+  const [turns, setTurns] = useState<ThreadTurn[]>(() => [{
+    id: `turn-${threadId}-0`,
+    userMessage: initialMessage.content,
     moves: [],
     finalSegments: [],
     isStreaming: true,
-  }))
+  }])
 
   // Transition overlay state
   const [transitionTo, setTransitionTo] = useState<Rect | null>(null)
   const [isTransitionActive, setIsTransitionActive] = useState(false)
 
-  const canSend = composerText.trim().length > 0
+  const canSend = composerText.trim().length > 0 && !turns.some(t => t.isStreaming)
 
   const pinnedMessageOpacity = useMemo(() => {
     if (!pendingTransition) return 1
@@ -70,49 +74,48 @@ export function ThreadView({
     return isTransitionActive ? 0 : 1
   }, [pendingTransition, initialMessage.id, isTransitionActive])
 
-  // Kick off mock agent loop once
+  // Run mock agent for a specific turn
+  const runAgentTurn = useCallback(async (turnId: string, userText: string) => {
+    const currentMoves: ThreadMove[] = []
+    const finalSegments: StreamSegment[] = []
+
+    const appendSegments = (segments: StreamSegment[], delta: string, prefix: string) => {
+      const tokens = delta.split(/(\s+)/)
+      for (const t of tokens) {
+        if (!t) continue
+        segments.push({ id: `${prefix}-${segments.length}-${Date.now()}`, text: t })
+      }
+    }
+
+    const update = () => {
+      setTurns((prev) => prev.map(turn => 
+        turn.id === turnId 
+          ? { ...turn, moves: [...currentMoves], finalSegments: [...finalSegments] }
+          : turn
+      ))
+    }
+
+    for await (const event of runMockThreadTurn(userText)) {
+      handleEvent(event, currentMoves, finalSegments, appendSegments)
+      update()
+
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      })
+    }
+
+    setTurns((prev) => prev.map(turn => 
+      turn.id === turnId 
+        ? { ...turn, isStreaming: false }
+        : turn
+    ))
+  }, [])
+
+  // Kick off first turn on mount
   useEffect(() => {
-    let cancelled = false
-
-    async function run() {
-      const currentMoves: ThreadMove[] = []
-      const finalSegments: StreamSegment[] = []
-
-      const appendSegments = (segments: StreamSegment[], delta: string, prefix: string) => {
-        // split into small tokens (including whitespace) for nicer fade-in
-        const tokens = delta.split(/(\s+)/)
-        for (const t of tokens) {
-          if (!t) continue
-          segments.push({ id: `${prefix}-${segments.length}-${Date.now()}`, text: t })
-        }
-      }
-
-      const update = () => {
-        setTurn((prev) => ({ ...prev, moves: [...currentMoves], finalSegments: [...finalSegments] }))
-      }
-
-      for await (const event of runMockThreadTurn(initialMessage.content)) {
-        if (cancelled) return
-
-        handleEvent(event, currentMoves, finalSegments, appendSegments)
-        update()
-
-        // keep latest content visible
-        requestAnimationFrame(() => {
-          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-        })
-      }
-
-      if (cancelled) return
-      setTurn((prev) => ({ ...prev, isStreaming: false }))
-    }
-
-    run()
-
-    return () => {
-      cancelled = true
-    }
-  }, [initialMessage.content])
+    runAgentTurn(turns[0].id, initialMessage.content)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Start bottom→top transition when arriving with pendingTransition
   useEffect(() => {
@@ -134,27 +137,61 @@ export function ThreadView({
     return () => window.clearTimeout(done)
   }, [pendingTransition, initialMessage.id, onTransitionDone])
 
-  const submitFollowup = () => {
+  const submitFollowup = useCallback(() => {
     if (!canSend) return
-    // v1: no-op; we’ll hook follow-up turns next
+    
+    const text = composerText.trim()
+    const turnId = `turn-${threadId}-${turns.length}`
+    
+    // Add new turn
+    setTurns(prev => [...prev, {
+      id: turnId,
+      userMessage: text,
+      moves: [],
+      finalSegments: [],
+      isStreaming: true,
+    }])
+    
     setComposerText('')
-  }
+    
+    // Start agent turn
+    setTimeout(() => runAgentTurn(turnId, text), 50)
+  }, [canSend, composerText, threadId, turns.length, runAgentTurn])
 
   return (
     <div className="thread-view">
       <div className="thread-scroll" ref={scrollRef}>
+        {/* Pinned first message */}
         <div className="thread-pinned" ref={pinnedRef} style={{ opacity: pinnedMessageOpacity }}>
           <UserMessageBubble content={initialMessage.content} sticky />
         </div>
 
+        {/* First agent turn */}
         <div className="thread-timeline">
           <AgentTurnView
             title="Agent"
-            moves={turn.moves}
-            finalSegments={turn.finalSegments}
-            isStreaming={turn.isStreaming}
+            moves={turns[0].moves}
+            finalSegments={turns[0].finalSegments}
+            isStreaming={turns[0].isStreaming}
           />
         </div>
+
+        {/* Follow-up turns */}
+        {turns.slice(1).map((turn) => (
+          <div key={turn.id} className="thread-followup">
+            <div className="thread-followup-message">
+              <UserMessageBubble content={turn.userMessage} />
+            </div>
+            <div className="thread-timeline">
+              <AgentTurnView
+                title="Agent"
+                moves={turn.moves}
+                finalSegments={turn.finalSegments}
+                isStreaming={turn.isStreaming}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="thread-composer">

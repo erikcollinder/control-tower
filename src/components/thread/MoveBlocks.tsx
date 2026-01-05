@@ -171,10 +171,13 @@ export function AgentTurnView({
   finalSegments: StreamSegment[]
   isStreaming: boolean
 }) {
-  const [collapsedMoves, setCollapsedMoves] = useState<Set<string>>(new Set())
+  // Tracks moves user has toggled from their default state
+  // Thinking: default expanded (toggled = collapsed)
+  // Tool calls: default collapsed (toggled = expanded)
+  const [toggledMoves, setToggledMoves] = useState<Set<string>>(new Set())
 
   const toggleMove = (moveId: string) => {
-    setCollapsedMoves((prev) => {
+    setToggledMoves((prev) => {
       const next = new Set(prev)
       if (next.has(moveId)) next.delete(moveId)
       else next.add(moveId)
@@ -187,6 +190,7 @@ export function AgentTurnView({
       <div className="turn-header">
         <Bot size={16} />
         <span>{title}</span>
+        {isStreaming && <span className="header-spinner" />}
         <span className="move-count">
           {moves.length} move{moves.length !== 1 ? 's' : ''}
         </span>
@@ -194,17 +198,19 @@ export function AgentTurnView({
 
       {moves.map((move) => {
         if (move.type === 'thinking') {
+          // Thinking: expanded by default, toggled = collapsed
           return (
             <ThinkingBlock
               key={move.id}
               segments={move.segments}
-              isCollapsed={collapsedMoves.has(move.id)}
+              isCollapsed={toggledMoves.has(move.id)}
               onToggle={() => toggleMove(move.id)}
               isStreaming={move.isStreaming}
             />
           )
         }
 
+        // Tool calls: collapsed by default, toggled = expanded
         return (
           <ToolCallBlock
             key={move.id}
@@ -213,13 +219,11 @@ export function AgentTurnView({
             inputObject={move.inputObject}
             resultText={move.resultText}
             status={move.status}
-            isCollapsed={collapsedMoves.has(move.id)}
+            isCollapsed={!toggledMoves.has(move.id)}
             onToggle={() => toggleMove(move.id)}
           />
         )
       })}
-
-      {isStreaming && <LoadingIndicator />}
 
       {finalSegments.length > 0 && (
         <div className="final-answer">

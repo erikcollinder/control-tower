@@ -91,6 +91,9 @@ Threads are a first-class surface separate from the right-side `ChatPanel`.
   - Each move is either **Thinking** (monologue) or a **Tool call**
   - Ends with a **final message** distinct from the monologue
 - A **bottom composer** is present for follow-ups (hooked up later).
+- **Header dropdown menu** (click thread title breadcrumb):
+  - **Restart** - Remounts the thread, re-running the agent with the same initial message
+  - **Clear thread** - Navigates back to Threads home
 
 ### Visual/Interaction Details (UI-first)
 
@@ -103,6 +106,14 @@ Threads are a first-class surface separate from the right-side `ChatPanel`.
 - For fast iteration, the thread detail uses a mock stream generator:
   - `src/services/threads/mockThreadAgent.ts`
   - Emits `thinking_*`, `tool_*`, `text_delta`, `turn_end` events compatible with `src/services/agent/types.ts`.
+- Demonstrates all tool types in sequence:
+  1. `think` - Internal reasoning
+  2. `search_codebase` - Code search
+  3. `read_file` - File reading
+  4. `list_files` - Directory listing
+  5. `create_procedure` - Canvas action
+  6. `execute_command` - Shell command
+- **Thinking blocks** are expanded by default; **tool call blocks** are collapsed by default (click to expand).
 
 ---
 
@@ -361,6 +372,8 @@ src/
 │   │   └── MoveBlocks.css
 │   ├── NodePill.tsx        # Reusable pill component for nodes/spaces
 │   ├── NodePill.css
+│   ├── DropdownMenu.tsx    # Reusable dropdown menu component
+│   ├── DropdownMenu.css
 │   ├── MentionInput.tsx    # Rich text input with @mentions
 │   ├── MentionDropdown.tsx # Autocomplete dropdown for mentions
 │   ├── Sidebar.tsx
