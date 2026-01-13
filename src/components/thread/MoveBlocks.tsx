@@ -12,6 +12,35 @@ import {
 } from 'lucide-react'
 import './MoveBlocks.css'
 
+// Extract filename from a path
+function getFileName(path: string): string {
+  const parts = path.split('/')
+  return parts[parts.length - 1] || path
+}
+
+// Extract file-related info from tool input for display in header
+function getToolFileInfo(toolName: string, inputObject?: Record<string, unknown>): string[] {
+  if (!inputObject) return []
+  
+  switch (toolName) {
+    case 'read_file':
+    case 'edit_file':
+    case 'create_file':
+    case 'delete_file': {
+      const path = inputObject.path ?? inputObject.target_file ?? inputObject.file_path
+      if (typeof path === 'string') return [getFileName(path)]
+      return []
+    }
+    case 'list_files': {
+      const path = inputObject.path ?? inputObject.directory
+      if (typeof path === 'string') return [path.endsWith('/') ? path : `${path}/`]
+      return []
+    }
+    default:
+      return []
+  }
+}
+
 export type StreamSegment = { id: string; text: string }
 
 export function StreamText({ segments }: { segments: StreamSegment[] }) {
@@ -156,11 +185,21 @@ export function ToolCallBlock({
 }) {
   const showResult = typeof resultText === 'string' && resultText.length > 0
   const meta = getToolMeta(name)
+  const fileInfo = getToolFileInfo(name, inputObject)
 
   return (
     <div className={`move tool-block ${isCollapsed ? 'collapsed' : ''} status-${status}`}>
       <div className="move-header" onClick={onToggle}>
         <span className="tool-label">{meta.label}</span>
+        {fileInfo.length > 0 && (
+          <span className="tool-file-pills">
+            {fileInfo.map((file, i) => (
+              <span key={i} className="tool-file-pill">
+                {file}
+              </span>
+            ))}
+          </span>
+        )}
         <span className={`tool-status-pill ${status}`}>{status}</span>
         <ChevronRight size={14} className="chevron" />
       </div>
