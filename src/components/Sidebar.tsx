@@ -1,4 +1,4 @@
-import { CheckSquare, LayoutGrid, Box, Settings, Users, Folder, Menu, MessageSquare, Type, Keyboard } from 'lucide-react'
+import { CheckSquare, LayoutGrid, Factory, Settings, Users, Folder, Menu, MessageSquare, Type, Keyboard } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import './Sidebar.css'
 
@@ -24,7 +24,7 @@ export function Sidebar({ onSettingsClick, activeId = 'spaces', onNavigate }: Si
     { id: 'tasks', icon: CheckSquare, label: 'Tasks', onClick: () => onNavigate?.('tasks') },
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', onClick: () => onNavigate?.('dashboard') },
     { id: 'threads', icon: MessageSquare, label: 'Threads', onClick: () => onNavigate?.('threads') },
-    { id: 'spaces', icon: Box, label: 'Spaces', onClick: () => onNavigate?.('spaces') },
+    { id: 'spaces', icon: Factory, label: 'Spaces', onClick: () => onNavigate?.('spaces') },
     { id: 'settings', icon: Settings, label: 'Settings', onClick: onSettingsClick },
     { id: 'team', icon: Users, label: 'Team', onClick: () => onNavigate?.('team') },
   ]

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Bot,
-  ChevronRight,
+  Check,
   FileText,
   FolderOpen,
   Lightbulb,
@@ -10,6 +10,35 @@ import {
   Terminal,
 } from 'lucide-react'
 import './MoveBlocks.css'
+
+// Extract filename from a path
+function getFileName(path: string): string {
+  const parts = path.split('/')
+  return parts[parts.length - 1] || path
+}
+
+// Extract file-related info from tool input for display in header
+function getToolFileInfo(toolName: string, inputObject?: Record<string, unknown>): string[] {
+  if (!inputObject) return []
+  
+  switch (toolName) {
+    case 'read_file':
+    case 'edit_file':
+    case 'create_file':
+    case 'delete_file': {
+      const path = inputObject.path ?? inputObject.target_file ?? inputObject.file_path
+      if (typeof path === 'string') return [getFileName(path)]
+      return []
+    }
+    case 'list_files': {
+      const path = inputObject.path ?? inputObject.directory
+      if (typeof path === 'string') return [path.endsWith('/') ? path : `${path}/`]
+      return []
+    }
+    default:
+      return []
+  }
+}
 
 export type StreamSegment = { id: string; text: string }
 
@@ -25,37 +54,88 @@ export function StreamText({ segments }: { segments: StreamSegment[] }) {
   )
 }
 
-export function UserMessageBubble({ content, sticky = false }: { content: string; sticky?: boolean }) {
+export function UserMessageBubble({ content, sticky = false, label = 'You' }: { content: string; sticky?: boolean; label?: string }) {
   return (
-    <div className={`user-message ${sticky ? 'sticky' : ''}`}>
-      <div className="message-label">You</div>
-      <div className="message-content">{content}</div>
+    <div className={`user-turn ${sticky ? 'sticky' : ''}`}>
+      <div className="turn-header">
+        <span>{label}</span>
+      </div>
+      <div className="user-message">
+        {content}
+      </div>
     </div>
   )
 }
 
-function getToolIcon(toolName: string) {
+interface ToolMeta {
+  icon: React.ReactNode
+  label: string
+}
+
+function getToolMeta(toolName: string): ToolMeta {
   switch (toolName) {
     case 'read_file':
-      return <FileText size={14} />
+      return { icon: <FileText size={12} />, label: 'Reading File' }
     case 'search_codebase':
-      return <Search size={14} />
+      return { icon: <Search size={12} />, label: 'Searching Codebase' }
     case 'execute_command':
-      return <Terminal size={14} />
+      return { icon: <Terminal size={12} />, label: 'Running Command' }
     case 'list_files':
-      return <FolderOpen size={14} />
+      return { icon: <FolderOpen size={12} />, label: 'Listing Files' }
     case 'think':
-      return <Lightbulb size={14} />
+      return { icon: <Lightbulb size={12} />, label: 'Thinking' }
     case 'create_procedure':
-      return <ListTodo size={14} />
-
-    // Common agent tools in this app/prototype
+      return { icon: <ListTodo size={12} />, label: 'Creating Procedure' }
     case 'web_search':
-      return <Search size={14} />
-
+      return { icon: <Search size={12} />, label: 'Searching Web' }
+    case 'edit_file':
+      return { icon: <FileText size={12} />, label: 'Editing File' }
+    case 'create_file':
+      return { icon: <FileText size={12} />, label: 'Creating File' }
+    case 'delete_file':
+      return { icon: <FileText size={12} />, label: 'Deleting File' }
     default:
-      return <Terminal size={14} />
+      // Fallback: convert snake_case to Title Case for unknown tools
+      const words = toolName.split('_')
+      const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      return { icon: <Terminal size={12} />, label: titleCase }
   }
+}
+
+// Stepper wrapper component
+function MoveStep({
+  icon,
+  isActive,
+  isDone,
+  isLast,
+  variant,
+  onIconClick,
+  children,
+}: {
+  icon: React.ReactNode
+  isActive?: boolean
+  isDone?: boolean
+  isLast?: boolean
+  variant?: 'thinking' | 'tool' | 'final'
+  onIconClick?: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className={`move-step ${isLast ? 'last' : ''}`}>
+      <div className="step-rail">
+        <div 
+          className={`step-icon ${variant ?? ''} ${isActive ? 'active' : ''} ${isDone ? 'done' : ''} ${onIconClick ? 'clickable' : ''}`}
+          onClick={onIconClick}
+        >
+          {icon}
+        </div>
+        {!isLast && <div className="step-line" />}
+      </div>
+      <div className="step-content">
+        {children}
+      </div>
+    </div>
+  )
 }
 
 export function ThinkingBlock({
@@ -72,9 +152,7 @@ export function ThinkingBlock({
   return (
     <div className={`move thinking-block ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="move-header" onClick={onToggle}>
-        <Lightbulb size={14} />
         <span>Thinking</span>
-        <ChevronRight size={14} className="chevron" />
       </div>
       <div className="move-content">
         <StreamText segments={segments} />
@@ -84,7 +162,16 @@ export function ThinkingBlock({
   )
 }
 
-export type ToolCallStatus = 'forming' | 'running' | 'done'
+export type ToolCallStatus = 'running' | 'done'
+
+export type ToolCallData = {
+  id: string
+  name: string
+  status: ToolCallStatus
+  inputText?: string
+  inputObject?: Record<string, unknown>
+  resultText?: string
+}
 
 export function ToolCallBlock({
   name,
@@ -104,14 +191,27 @@ export function ToolCallBlock({
   onToggle: () => void
 }) {
   const showResult = typeof resultText === 'string' && resultText.length > 0
+  const meta = getToolMeta(name)
+  const fileInfo = getToolFileInfo(name, inputObject)
 
   return (
     <div className={`move tool-block ${isCollapsed ? 'collapsed' : ''} status-${status}`}>
       <div className="move-header" onClick={onToggle}>
-        {getToolIcon(name)}
-        <span className="tool-name">{name}</span>
-        <span className={`tool-status-pill ${status}`}>{status}</span>
-        <ChevronRight size={14} className="chevron" />
+        <span className="tool-label">{meta.label}</span>
+        {fileInfo.length > 0 && (
+          <span className="tool-file-pills">
+            {fileInfo.map((file, i) => (
+              <span key={i} className="tool-file-pill">
+                {file}
+              </span>
+            ))}
+          </span>
+        )}
+        {status === 'done' ? (
+          <Check size={14} className="tool-done-check" />
+        ) : (
+          <span className={`tool-status-pill ${status}`}>{status}</span>
+        )}
       </div>
       <div className="move-content">
         <div className="tool-args">
@@ -120,7 +220,7 @@ export function ToolCallBlock({
           ) : (
             <pre className="mono-pre">{JSON.stringify(inputObject ?? {}, null, 2)}</pre>
           )}
-          {(status === 'forming' || status === 'running') && <div className="shimmer" />}
+          {status === 'running' && <div className="shimmer" />}
         </div>
 
         {showResult && (
@@ -135,6 +235,9 @@ export function ToolCallBlock({
     </div>
   )
 }
+
+// Export getToolMeta for use in AgentTurnView
+export { getToolMeta }
 
 export function LoadingIndicator({ label = 'Processing…' }: { label?: string }) {
   return (
@@ -167,14 +270,25 @@ export function AgentTurnView({
         resultText?: string
         status: ToolCallStatus
       }
+    | {
+        type: 'tool_group'
+        id: string
+        tools: ToolCallData[]
+      }
   >
   finalSegments: StreamSegment[]
   isStreaming: boolean
 }) {
-  const [collapsedMoves, setCollapsedMoves] = useState<Set<string>>(new Set())
+  // Tracks moves user has toggled from their default state
+  // Thinking: default expanded (toggled = collapsed)
+  // Tool calls: default collapsed (toggled = expanded)
+  const [toggledMoves, setToggledMoves] = useState<Set<string>>(new Set())
+  
+  // Collapse entire moves section (hide all intermediate steps, show only final answer)
+  const [movesCollapsed, setMovesCollapsed] = useState(false)
 
   const toggleMove = (moveId: string) => {
-    setCollapsedMoves((prev) => {
+    setToggledMoves((prev) => {
       const next = new Set(prev)
       if (next.has(moveId)) next.delete(moveId)
       else next.add(moveId)
@@ -182,47 +296,137 @@ export function AgentTurnView({
     })
   }
 
+  // Toggle all tools in a group together
+  const toggleToolGroup = (toolIds: string[]) => {
+    setToggledMoves((prev) => {
+      const next = new Set(prev)
+      // Check if any tool in the group is currently expanded (in toggledMoves)
+      const anyExpanded = toolIds.some(id => prev.has(id))
+      // If any are expanded, collapse all; otherwise expand all
+      for (const id of toolIds) {
+        if (anyExpanded) {
+          next.delete(id)
+        } else {
+          next.add(id)
+        }
+      }
+      return next
+    })
+  }
+
+  const hasFinalAnswer = finalSegments.length > 0
+
   return (
-    <div className="agent-turn">
+    <div className={`agent-turn ${movesCollapsed ? 'moves-collapsed' : ''}`}>
       <div className="turn-header">
         <Bot size={16} />
         <span>{title}</span>
-        <span className="move-count">
+        {isStreaming && !hasFinalAnswer && <span className="header-spinner" />}
+        <span 
+          className={`move-count ${movesCollapsed ? 'active' : ''}`}
+          onClick={() => setMovesCollapsed(!movesCollapsed)}
+          title={movesCollapsed ? 'Show moves' : 'Hide moves'}
+        >
           {moves.length} move{moves.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {moves.map((move) => {
-        if (move.type === 'thinking') {
-          return (
-            <ThinkingBlock
-              key={move.id}
-              segments={move.segments}
-              isCollapsed={collapsedMoves.has(move.id)}
-              onToggle={() => toggleMove(move.id)}
-              isStreaming={move.isStreaming}
-            />
-          )
-        }
+      {!movesCollapsed && (
+        <div className="move-steps">
+          {moves.map((move, index) => {
+            const isLastMove = index === moves.length - 1
 
-        return (
-          <ToolCallBlock
-            key={move.id}
-            name={move.name}
-            inputText={move.inputText}
-            inputObject={move.inputObject}
-            resultText={move.resultText}
-            status={move.status}
-            isCollapsed={collapsedMoves.has(move.id)}
-            onToggle={() => toggleMove(move.id)}
-          />
-        )
-      })}
+            if (move.type === 'thinking') {
+              const isThinkingDone = !move.isStreaming
+              return (
+                <MoveStep
+                  key={move.id}
+                  icon={<Lightbulb size={12} />}
+                  isActive={move.isStreaming}
+                  isDone={isThinkingDone}
+                  isLast={isLastMove}
+                  variant="thinking"
+                  onIconClick={() => toggleMove(move.id)}
+                >
+                  <ThinkingBlock
+                    segments={move.segments}
+                    isCollapsed={toggledMoves.has(move.id)}
+                    onToggle={() => toggleMove(move.id)}
+                    isStreaming={move.isStreaming}
+                  />
+                </MoveStep>
+              )
+            }
 
-      {isStreaming && <LoadingIndicator />}
+            // Tool group (parallel tools)
+            if (move.type === 'tool_group') {
+              const allDone = move.tools.every(t => t.status === 'done')
+              const anyActive = move.tools.some(t => t.status === 'running')
+              // Use first tool's icon as the group icon
+              const firstMeta = move.tools.length > 0 ? getToolMeta(move.tools[0].name) : { icon: <Terminal size={12} /> }
+              const toolIds = move.tools.map(t => t.id)
 
-      {finalSegments.length > 0 && (
-        <div className="final-answer">
+              return (
+                <MoveStep
+                  key={move.id}
+                  icon={firstMeta.icon}
+                  isActive={anyActive}
+                  isDone={allDone}
+                  isLast={isLastMove}
+                  variant="tool"
+                  onIconClick={() => toggleToolGroup(toolIds)}
+                >
+                  <div className="tool-group">
+                    {move.tools.map((tool) => (
+                      <ToolCallBlock
+                        key={tool.id}
+                        name={tool.name}
+                        inputText={tool.inputText}
+                        inputObject={tool.inputObject}
+                        resultText={tool.resultText}
+                        status={tool.status}
+                        isCollapsed={!toggledMoves.has(tool.id)}
+                        onToggle={() => toggleMove(tool.id)}
+                      />
+                    ))}
+                  </div>
+                </MoveStep>
+              )
+            }
+
+            // Single tool call
+            const meta = getToolMeta(move.name)
+            const isToolDone = move.status === 'done'
+            const isToolActive = move.status === 'running'
+
+            return (
+              <MoveStep
+                key={move.id}
+                icon={meta.icon}
+                isActive={isToolActive}
+                isDone={isToolDone}
+                isLast={isLastMove}
+                variant="tool"
+                onIconClick={() => toggleMove(move.id)}
+              >
+                <ToolCallBlock
+                  name={move.name}
+                  inputText={move.inputText}
+                  inputObject={move.inputObject}
+                  resultText={move.resultText}
+                  status={move.status}
+                  isCollapsed={!toggledMoves.has(move.id)}
+                  onToggle={() => toggleMove(move.id)}
+                />
+              </MoveStep>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Final answer - always shown outside move-steps, styled like user message */}
+      {hasFinalAnswer && (
+        <div className="agent-message">
           <StreamText segments={finalSegments} />
           {isStreaming && <span className="inline-cursor" />}
         </div>
