@@ -193,114 +193,115 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar
-        activeId={sidebarActiveId}
-        onNavigate={handleNavigate}
-        onSettingsClick={() => setIsPreferencesOpen(true)}
+      <Header
+        sectionLabel={headerConfig.sectionLabel}
+        SectionIcon={headerConfig.SectionIcon}
+        contextLabel={headerConfig.contextLabel}
+        ContextIcon={headerConfig.ContextIcon}
+        showContextChevron={headerConfig.showContextChevron}
+        contextMenuItems={'contextMenuItems' in headerConfig ? headerConfig.contextMenuItems : undefined}
+        showChatToggle={headerConfig.showChatToggle}
+        isChatOpen={isChatOpen}
+        onToggleChat={() => setIsChatOpen(prev => !prev)}
+        selectedNodes={selectedNodes}
+        openPanel={openPanel}
+        onClearSelection={(nodeId) => {
+          if (nodeId) {
+            setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
+          } else {
+            setSelectedNodes([])
+          }
+        }}
+        onClearOpenPanel={() => {
+          setOpenPanel(null)
+          closeAllPanelsHandler?.()
+        }}
       />
-      <div className="main-area">
-        <Header
-          sectionLabel={headerConfig.sectionLabel}
-          SectionIcon={headerConfig.SectionIcon}
-          contextLabel={headerConfig.contextLabel}
-          ContextIcon={headerConfig.ContextIcon}
-          showContextChevron={headerConfig.showContextChevron}
-          contextMenuItems={'contextMenuItems' in headerConfig ? headerConfig.contextMenuItems : undefined}
-          showChatToggle={headerConfig.showChatToggle}
-          isChatOpen={isChatOpen}
-          onToggleChat={() => setIsChatOpen(prev => !prev)}
-          selectedNodes={selectedNodes}
-          openPanel={openPanel}
-          onClearSelection={(nodeId) => {
-            if (nodeId) {
-              setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
-            } else {
-              setSelectedNodes([])
-            }
-          }}
-          onClearOpenPanel={() => {
-            setOpenPanel(null)
-            closeAllPanelsHandler?.()
-          }}
+      <div className="content-row">
+        <Sidebar
+          activeId={sidebarActiveId}
+          onNavigate={handleNavigate}
+          onSettingsClick={() => setIsPreferencesOpen(true)}
         />
+        <div className="main-area">
+          {route.id === 'spaces' && (
+            <>
+              <Canvas
+                gridType={gridType}
+                gridScale={gridScale}
+                gridOpacity={gridOpacity}
+                showParticleTrails={showParticleTrails}
+                onSelectionChange={setSelectedNodes}
+                onNodesListChange={setCanvasNodes}
+                onOpenPanelChange={setOpenPanel}
+                onCreateProcedureReady={handleCreateProcedureReady}
+                onUpdateProcedureReady={handleUpdateProcedureReady}
+                onCloseAllPanelsReady={handleCloseAllPanelsReady}
+              />
+            </>
+          )}
 
-        {route.id === 'spaces' && (
-          <>
-            <Canvas
-              gridType={gridType}
-              gridScale={gridScale}
-              gridOpacity={gridOpacity}
-              showParticleTrails={showParticleTrails}
-              onSelectionChange={setSelectedNodes}
-              onNodesListChange={setCanvasNodes}
-              onOpenPanelChange={setOpenPanel}
-              onCreateProcedureReady={handleCreateProcedureReady}
-              onUpdateProcedureReady={handleUpdateProcedureReady}
-              onCloseAllPanelsReady={handleCloseAllPanelsReady}
+          {route.id === 'threadsHome' && <ThreadsScreen title="Threads" onStartThread={startNewThread} />}
+
+          {route.id === 'threadDetail' && currentThread && (
+            <ThreadView
+              key={`${currentThread.id}-${threadResetKey}`}
+              threadId={currentThread.id}
+              threadTitle={currentThread.title}
+              initialMessage={currentThread.messages[0]!}
+              pendingTransition={
+                pendingMessageTransition &&
+                pendingMessageTransition.threadId === currentThread.id &&
+                pendingMessageTransition.messageId === currentThread.messages[0]?.id
+                  ? { messageId: pendingMessageTransition.messageId, from: pendingMessageTransition.from }
+                  : null
+              }
+              onTransitionDone={() => {
+                setPendingMessageTransition(prev => {
+                  if (!prev) return prev
+                  if (prev.threadId !== currentThread.id) return prev
+                  return null
+                })
+              }}
             />
-          </>
-        )}
+          )}
 
-        {route.id === 'threadsHome' && <ThreadsScreen title="Threads" onStartThread={startNewThread} />}
+          {route.id === 'threadDetail' && !currentThread && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
+              Thread not found
+            </div>
+          )}
 
-        {route.id === 'threadDetail' && currentThread && (
-          <ThreadView
-            key={`${currentThread.id}-${threadResetKey}`}
-            threadId={currentThread.id}
-            threadTitle={currentThread.title}
-            initialMessage={currentThread.messages[0]!}
-            pendingTransition={
-              pendingMessageTransition &&
-              pendingMessageTransition.threadId === currentThread.id &&
-              pendingMessageTransition.messageId === currentThread.messages[0]?.id
-                ? { messageId: pendingMessageTransition.messageId, from: pendingMessageTransition.from }
-                : null
-            }
-            onTransitionDone={() => {
-              setPendingMessageTransition(prev => {
-                if (!prev) return prev
-                if (prev.threadId !== currentThread.id) return prev
-                return null
-              })
+          {route.id !== 'spaces' && route.id !== 'threadsHome' && route.id !== 'threadDetail' && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
+              {route.id} coming soon
+            </div>
+          )}
+        </div>
+        {route.id === 'spaces' && (
+          <ChatPanel
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            currentSpace={{ id: 'facility-management', label: 'Facility Management' }}
+            selectedNodes={selectedNodes}
+            openPanel={openPanel}
+            onClearSelection={(nodeId) => {
+              if (nodeId) {
+                setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
+              } else {
+                setSelectedNodes([])
+              }
             }}
+            onClearOpenPanel={() => {
+              setOpenPanel(null)
+              closeAllPanelsHandler?.()
+            }}
+            mentionOptions={mentionOptions}
+            onCreateProcedure={createProcedureHandler ?? undefined}
+            onUpdateProcedure={updateProcedureHandler ?? undefined}
           />
         )}
-
-        {route.id === 'threadDetail' && !currentThread && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
-            Thread not found
-          </div>
-        )}
-
-        {route.id !== 'spaces' && route.id !== 'threadsHome' && route.id !== 'threadDetail' && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mono-500)' }}>
-            {route.id} coming soon
-          </div>
-        )}
       </div>
-      {route.id === 'spaces' && (
-        <ChatPanel
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          currentSpace={{ id: 'facility-management', label: 'Facility Management' }}
-          selectedNodes={selectedNodes}
-          openPanel={openPanel}
-          onClearSelection={(nodeId) => {
-            if (nodeId) {
-              setSelectedNodes(prev => prev.filter(n => n.id !== nodeId))
-            } else {
-              setSelectedNodes([])
-            }
-          }}
-          onClearOpenPanel={() => {
-            setOpenPanel(null)
-            closeAllPanelsHandler?.()
-          }}
-          mentionOptions={mentionOptions}
-          onCreateProcedure={createProcedureHandler ?? undefined}
-          onUpdateProcedure={updateProcedureHandler ?? undefined}
-        />
-      )}
       <PreferencesModal
         isOpen={isPreferencesOpen}
         onClose={() => setIsPreferencesOpen(false)}

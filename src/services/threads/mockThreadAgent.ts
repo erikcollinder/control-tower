@@ -52,7 +52,7 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   const searchId = uid('tool')
   yield { type: 'tool_start', data: { id: searchId, name: 'search_codebase' } }
 
-  const searchArgs = JSON.stringify({ query: 'ProcedureStage', file_pattern: '*.tsx' }, null, 2)
+  const searchArgs = `query: ProcedureStage\nfile_pattern: "*.tsx"`
   for (const chunk of splitForStreaming(searchArgs, 20)) {
     await sleep(105)
     yield { type: 'tool_delta', data: { id: searchId, delta: chunk } }
@@ -69,7 +69,7 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   const readId = uid('tool')
   yield { type: 'tool_start', data: { id: readId, name: 'read_file' } }
 
-  const readArgs = JSON.stringify({ path: 'src/components/nodes/ProcedureNode.tsx' }, null, 2)
+  const readArgs = `path: src/components/nodes/ProcedureNode.tsx`
   for (const chunk of splitForStreaming(readArgs, 20)) {
     await sleep(90)
     yield { type: 'tool_delta', data: { id: readId, delta: chunk } }
@@ -86,7 +86,7 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   const listId = uid('tool')
   yield { type: 'tool_start', data: { id: listId, name: 'list_files' } }
 
-  const listArgs = JSON.stringify({ path: 'src/services' }, null, 2)
+  const listArgs = `path: src/services`
   for (const chunk of splitForStreaming(listArgs, 20)) {
     await sleep(90)
     yield { type: 'tool_delta', data: { id: listId, delta: chunk } }
@@ -110,9 +110,9 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   yield { type: 'tool_start', data: { id: parallelRead3, name: 'read_file' } }
 
   // Stream args for each (interleaved to simulate parallel)
-  const args1 = JSON.stringify({ path: 'src/services/agent/client.ts' }, null, 2)
-  const args2 = JSON.stringify({ path: 'src/services/agent/tools.ts' }, null, 2)
-  const args3 = JSON.stringify({ path: 'src/services/agent/types.ts' }, null, 2)
+  const args1 = `path: src/services/agent/client.ts`
+  const args2 = `path: src/services/agent/tools.ts`
+  const args3 = `path: src/services/agent/types.ts`
 
   for (let i = 0; i < Math.max(args1.length, args2.length, args3.length); i += 15) {
     await sleep(60)
@@ -157,16 +157,18 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   const createId = uid('tool')
   yield { type: 'tool_start', data: { id: createId, name: 'create_procedure' } }
 
-  const createArgs = JSON.stringify({
-    title: 'Document Review',
-    stages: [
-      { label: 'Receive Document', type: 'default' },
-      { label: 'Extract Key Data', type: 'ai' },
-      { label: 'Validate Information', type: 'manual' },
-      { label: 'Request Approval', type: 'approval' },
-      { label: 'Archive Document', type: 'ai' },
-    ]
-  }, null, 2)
+  const createArgs = `title: Document Review
+stages:
+  - label: Receive Document
+    type: default
+  - label: Extract Key Data
+    type: ai
+  - label: Validate Information
+    type: manual
+  - label: Request Approval
+    type: approval
+  - label: Archive Document
+    type: ai`
 
   for (const chunk of splitForStreaming(createArgs, 25)) {
     await sleep(105)
@@ -196,7 +198,7 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   const execId = uid('tool')
   yield { type: 'tool_start', data: { id: execId, name: 'execute_command' } }
 
-  const execArgs = JSON.stringify({ command: 'wc -l src/components/nodes/*.tsx' }, null, 2)
+  const execArgs = `command: wc -l src/components/nodes/*.tsx`
   for (const chunk of splitForStreaming(execArgs, 20)) {
     await sleep(90)
     yield { type: 'tool_delta', data: { id: execId, delta: chunk } }
@@ -212,7 +214,7 @@ export async function* runMockThreadTurn(userText: string): AsyncGenerator<Agent
   // ─────────────────────────────────────────────────────────────
   const finalText =
     `I've analyzed the codebase and created the procedure you requested.\n\n` +
-    `**Summary:**\n` +
+    `Summary:\n` +
     `• Found the ProcedureStage interface with 5 stage types\n` +
     `• Created "Document Review" procedure with 5 stages\n` +
     `• The codebase has 266 lines across node components\n\n` +
