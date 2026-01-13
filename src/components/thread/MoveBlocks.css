@@ -183,6 +183,24 @@
   padding: 2px 8px;
   border-radius: 10px;
   margin-left: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.move-count:hover {
+  background: var(--mono-300);
+  color: var(--mono-700);
+}
+
+.move-count.active {
+  background: var(--mono-700);
+  color: var(--mono-100);
+}
+
+.move-count.active:hover {
+  background: var(--mono-600);
+  color: var(--mono-0);
 }
 
 /* Move container (base) */
@@ -503,4 +521,9 @@
   color: var(--mono-900);
   font-family: inherit;
   animation: fadeSlideIn 0.2s ease-out;
+}
+
+/* Final answer when moves are collapsed (shown without stepper) */
+.final-answer.collapsed-view {
+  padding: 8px 0 0 0;
 }

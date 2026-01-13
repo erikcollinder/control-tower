@@ -273,6 +273,9 @@ export function AgentTurnView({
   // Thinking: default expanded (toggled = collapsed)
   // Tool calls: default collapsed (toggled = expanded)
   const [toggledMoves, setToggledMoves] = useState<Set<string>>(new Set())
+  
+  // Collapse entire moves section (hide all intermediate steps, show only final answer)
+  const [movesCollapsed, setMovesCollapsed] = useState(false)
 
   const toggleMove = (moveId: string) => {
     setToggledMoves((prev) => {
@@ -287,117 +290,130 @@ export function AgentTurnView({
   const isFinalAnswerDone = hasFinalAnswer && !isStreaming
 
   return (
-    <div className="agent-turn">
+    <div className={`agent-turn ${movesCollapsed ? 'moves-collapsed' : ''}`}>
       <div className="turn-header">
         <Bot size={16} />
         <span>{title}</span>
         {isStreaming && <span className="header-spinner" />}
-        <span className="move-count">
+        <span 
+          className={`move-count ${movesCollapsed ? 'active' : ''}`}
+          onClick={() => setMovesCollapsed(!movesCollapsed)}
+          title={movesCollapsed ? 'Show moves' : 'Hide moves'}
+        >
           {moves.length} move{moves.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      <div className="move-steps">
-        {moves.map((move, index) => {
-          const isLastMove = index === moves.length - 1 && !hasFinalAnswer
+      {!movesCollapsed && (
+        <div className="move-steps">
+          {moves.map((move, index) => {
+            const isLastMove = index === moves.length - 1 && !hasFinalAnswer
 
-          if (move.type === 'thinking') {
-            const isThinkingDone = !move.isStreaming
+            if (move.type === 'thinking') {
+              const isThinkingDone = !move.isStreaming
+              return (
+                <MoveStep
+                  key={move.id}
+                  icon={<Lightbulb size={12} />}
+                  isActive={move.isStreaming}
+                  isDone={isThinkingDone}
+                  isLast={isLastMove}
+                  variant="thinking"
+                >
+                  <ThinkingBlock
+                    segments={move.segments}
+                    isCollapsed={toggledMoves.has(move.id)}
+                    onToggle={() => toggleMove(move.id)}
+                    isStreaming={move.isStreaming}
+                  />
+                </MoveStep>
+              )
+            }
+
+            // Tool group (parallel tools)
+            if (move.type === 'tool_group') {
+              const allDone = move.tools.every(t => t.status === 'done')
+              const anyActive = move.tools.some(t => t.status === 'forming' || t.status === 'running')
+              // Use first tool's icon as the group icon
+              const firstMeta = move.tools.length > 0 ? getToolMeta(move.tools[0].name) : { icon: <Terminal size={12} /> }
+
+              return (
+                <MoveStep
+                  key={move.id}
+                  icon={firstMeta.icon}
+                  isActive={anyActive}
+                  isDone={allDone}
+                  isLast={isLastMove}
+                  variant="tool"
+                >
+                  <div className="tool-group">
+                    {move.tools.map((tool) => (
+                      <ToolCallBlock
+                        key={tool.id}
+                        name={tool.name}
+                        inputText={tool.inputText}
+                        inputObject={tool.inputObject}
+                        resultText={tool.resultText}
+                        status={tool.status}
+                        isCollapsed={!toggledMoves.has(tool.id)}
+                        onToggle={() => toggleMove(tool.id)}
+                      />
+                    ))}
+                  </div>
+                </MoveStep>
+              )
+            }
+
+            // Single tool call
+            const meta = getToolMeta(move.name)
+            const isToolDone = move.status === 'done'
+            const isToolActive = move.status === 'forming' || move.status === 'running'
+
             return (
               <MoveStep
                 key={move.id}
-                icon={<Lightbulb size={12} />}
-                isActive={move.isStreaming}
-                isDone={isThinkingDone}
-                isLast={isLastMove}
-                variant="thinking"
-              >
-                <ThinkingBlock
-                  segments={move.segments}
-                  isCollapsed={toggledMoves.has(move.id)}
-                  onToggle={() => toggleMove(move.id)}
-                  isStreaming={move.isStreaming}
-                />
-              </MoveStep>
-            )
-          }
-
-          // Tool group (parallel tools)
-          if (move.type === 'tool_group') {
-            const allDone = move.tools.every(t => t.status === 'done')
-            const anyActive = move.tools.some(t => t.status === 'forming' || t.status === 'running')
-            // Use first tool's icon as the group icon
-            const firstMeta = move.tools.length > 0 ? getToolMeta(move.tools[0].name) : { icon: <Terminal size={12} /> }
-
-            return (
-              <MoveStep
-                key={move.id}
-                icon={firstMeta.icon}
-                isActive={anyActive}
-                isDone={allDone}
+                icon={meta.icon}
+                isActive={isToolActive}
+                isDone={isToolDone}
                 isLast={isLastMove}
                 variant="tool"
               >
-                <div className="tool-group">
-                  {move.tools.map((tool) => (
-                    <ToolCallBlock
-                      key={tool.id}
-                      name={tool.name}
-                      inputText={tool.inputText}
-                      inputObject={tool.inputObject}
-                      resultText={tool.resultText}
-                      status={tool.status}
-                      isCollapsed={!toggledMoves.has(tool.id)}
-                      onToggle={() => toggleMove(tool.id)}
-                    />
-                  ))}
-                </div>
+                <ToolCallBlock
+                  name={move.name}
+                  inputText={move.inputText}
+                  inputObject={move.inputObject}
+                  resultText={move.resultText}
+                  status={move.status}
+                  isCollapsed={!toggledMoves.has(move.id)}
+                  onToggle={() => toggleMove(move.id)}
+                />
               </MoveStep>
             )
-          }
+          })}
 
-          // Single tool call
-          const meta = getToolMeta(move.name)
-          const isToolDone = move.status === 'done'
-          const isToolActive = move.status === 'forming' || move.status === 'running'
-
-          return (
+          {hasFinalAnswer && (
             <MoveStep
-              key={move.id}
-              icon={meta.icon}
-              isActive={isToolActive}
-              isDone={isToolDone}
-              isLast={isLastMove}
-              variant="tool"
+              icon={<MessageSquare size={12} />}
+              isActive={isStreaming}
+              isDone={isFinalAnswerDone}
+              isLast={true}
+              variant="final"
             >
-              <ToolCallBlock
-                name={move.name}
-                inputText={move.inputText}
-                inputObject={move.inputObject}
-                resultText={move.resultText}
-                status={move.status}
-                isCollapsed={!toggledMoves.has(move.id)}
-                onToggle={() => toggleMove(move.id)}
-              />
+              <div className="final-answer">
+                <StreamText segments={finalSegments} />
+                {isStreaming && <span className="inline-cursor" />}
+              </div>
             </MoveStep>
-          )
-        })}
+          )}
+        </div>
+      )}
 
-        {hasFinalAnswer && (
-          <MoveStep
-            icon={<MessageSquare size={12} />}
-            isActive={isStreaming}
-            isDone={isFinalAnswerDone}
-            isLast={true}
-            variant="final"
-          >
-            <div className="final-answer">
-              <StreamText segments={finalSegments} />
-              {isStreaming && <span className="inline-cursor" />}
-            </div>
-          </MoveStep>
-        )}
-      </div>
+      {/* Final answer shown outside move-steps when collapsed */}
+      {movesCollapsed && hasFinalAnswer && (
+        <div className="final-answer collapsed-view">
+          <StreamText segments={finalSegments} />
+        </div>
+      )}
     </div>
   )
 }
